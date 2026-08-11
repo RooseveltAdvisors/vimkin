@@ -35,7 +35,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>NSHighResolutionCapable</key><true/>
     <key>NSHumanReadableCopyright</key><string>MIT License</string>
 </dict>
+</plist>
 PLIST
+
+plutil -lint "$APP/Contents/Info.plist" > /dev/null
 
 # Ad-hoc sign so the bundle runs locally without a dev cert
 codesign --force --deep -s - "$APP"
