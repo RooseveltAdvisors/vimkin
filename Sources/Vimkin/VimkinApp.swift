@@ -2,6 +2,9 @@ import SwiftUI
 
 @main
 struct VimkinApp: App {
+    // Owns the lookup overlay + global summon hotkey (U10). See UI/Overlay/.
+    @NSApplicationDelegateAdaptor(VimkinAppDelegate.self) private var appDelegate
+
     var body: some Scene {
         WindowGroup("Vimkin") {
             ContentView()
