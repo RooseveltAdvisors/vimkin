@@ -1,0 +1,58 @@
+# Quill — personal notes app configuration
+# Edit this file, save, and the app reloads it automatically.
+
+app:
+  name: "Quill"
+  language: "en"
+  check_for_updates: weekly
+
+appearance:
+  theme: "paper"            # options: paper, midnight, forest
+  accent_color: "#e07a3f"
+  font:
+    family: "Charter"
+    size: 15
+    line_spacing: 1.4
+  show_word_count: true
+  typewriter_mode: false
+
+editor:
+  autosave: true
+  autosave_interval_seconds: 20
+  spellcheck: true
+  smart_quotes: true
+  default_folder: "Daily Notes"
+  date_format: "YYYY-MM-DD"
+
+notebooks:
+  - name: "Daily Notes"
+    icon: "sunrise"
+    sort: newest_first
+  - name: "Recipes"
+    icon: "pot"
+    sort: alphabetical
+  - name: "Trip Planning"
+    icon: "map"
+    sort: manual
+  - name: "Archive"
+    icon: "box"
+    sort: oldest_first
+
+backup:
+  enabled: true
+  destination: "~/Documents/Quill Backups"
+  frequency: daily
+  keep_last: 14
+  include_attachments: true
+
+notifications:
+  daily_reminder: true
+  reminder_time: "21:00"
+  weekly_review: sunday
+  sounds: false
+
+privacy:
+  analytics: false
+  crash_reports: ask
+  lock_with_password: true
+  lock_after_minutes: 10

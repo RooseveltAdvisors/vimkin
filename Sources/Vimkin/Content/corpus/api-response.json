@@ -1,0 +1,63 @@
+{
+  "status": "ok",
+  "generated_at": "2026-04-18T09:15:00Z",
+  "library": {
+    "name": "Maplewood Public Library",
+    "branch": "Riverside",
+    "open_today": true,
+    "hours_today": "9:00-20:00"
+  },
+  "member": {
+    "id": "MW-208831",
+    "name": "Rivera, Dana",
+    "card_expires": "2027-01-31",
+    "fines_due": 0.50,
+    "holds_available": 1
+  },
+  "checkouts": [
+    {
+      "title": "The Lighthouse Keepers",
+      "author": "H. Okafor",
+      "format": "book",
+      "due_date": "2026-04-25",
+      "renewals_left": 2,
+      "overdue": false
+    },
+    {
+      "title": "Bread at Home",
+      "author": "S. Lindqvist",
+      "format": "book",
+      "due_date": "2026-04-20",
+      "renewals_left": 0,
+      "overdue": false
+    },
+    {
+      "title": "Birds of the Inland Waterways",
+      "author": "P. Marsh",
+      "format": "audiobook",
+      "due_date": "2026-04-15",
+      "renewals_left": 1,
+      "overdue": true
+    }
+  ],
+  "holds": [
+    {
+      "title": "The Lighthouse Keepers II: New Shores",
+      "author": "H. Okafor",
+      "position_in_queue": 1,
+      "status": "ready_for_pickup",
+      "pickup_by": "2026-04-22"
+    },
+    {
+      "title": "Container Gardening for Small Spaces",
+      "author": "L. Beaumont",
+      "position_in_queue": 7,
+      "status": "waiting",
+      "estimated_wait_weeks": 3
+    }
+  ],
+  "messages": [
+    "One hold is ready for pickup at the Riverside branch.",
+    "An item is overdue. Renew or return to avoid additional fines."
+  ]
+}
