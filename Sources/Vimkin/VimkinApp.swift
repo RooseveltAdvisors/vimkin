@@ -15,13 +15,25 @@ struct VimkinApp: App {
 }
 
 struct ContentView: View {
-    @State private var showPlayground = false
+    /// Where the app currently is. Title screen by default.
+    private enum Route {
+        case title
+        case learn
+        case playground
+    }
+
+    @State private var route: Route = .title
+    /// The local progress spine (U9), shared by every learning surface.
+    @State private var store = ProgressStore()
 
     var body: some View {
-        if showPlayground {
-            PlaygroundView(onBack: { showPlayground = false })
-        } else {
+        switch route {
+        case .title:
             titleScreen
+        case .learn:
+            TutorialView(store: store, onBack: { route = .title })
+        case .playground:
+            PlaygroundView(onBack: { route = .title })
         }
     }
 
@@ -39,10 +51,14 @@ struct ContentView: View {
                 Text("learn vim. rescue the vimkins.")
                     .font(.system(.title3, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.6))
-                Button("Playground") { showPlayground = true }
-                    .buttonStyle(.borderedProminent)
-                    .font(.system(.body, design: .monospaced))
-                    .padding(.top, 24)
+                HStack(spacing: 12) {
+                    Button("Learn") { route = .learn }
+                        .buttonStyle(.borderedProminent)
+                    Button("Playground") { route = .playground }
+                        .buttonStyle(.bordered)
+                }
+                .font(.system(.body, design: .monospaced))
+                .padding(.top, 24)
             }
         }
     }
