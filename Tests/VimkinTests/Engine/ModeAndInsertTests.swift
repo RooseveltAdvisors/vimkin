@@ -4,7 +4,7 @@ import Testing
 // Batch 1 — modes, insert family (i a o I A O, Esc), basic motions (h j k l 0 $ ^ gg G).
 // Behavior references: real Vim documented behavior (:h insert, :h left-right-motions, :h up-down-motions).
 
-@Suite struct ModeTests {
+@Suite(.tags(.unit)) struct ModeTests {
     @Test func startsInNormalMode() {
         let engine = VimEngine(text: "hello")
         #expect(engine.mode == .normal)
@@ -108,7 +108,7 @@ import Testing
     }
 }
 
-@Suite struct BasicMotionTests {
+@Suite(.tags(.unit)) struct BasicMotionTests {
     @Test func hjklMove() {
         var engine = VimEngine(text: "abc\ndef\nghi")
         engine.feed("l")

@@ -4,7 +4,7 @@ import Testing
 // Batch 2 — word motions (w b e), find motions (f t F T ; ,), counts on motions.
 // Behavior references: :h word-motions, :h f, :h t, :h ;, :h ,
 
-@Suite struct WordMotionTests {
+@Suite(.tags(.unit)) struct WordMotionTests {
     @Test func wMovesToNextWordStart() {
         var engine = VimEngine(text: "hello world")
         engine.feed("w")
@@ -87,7 +87,7 @@ import Testing
     }
 }
 
-@Suite struct FindMotionTests {
+@Suite(.tags(.unit)) struct FindMotionTests {
     @Test func fMovesToChar() {
         var engine = VimEngine(text: "hello world")
         engine.feed(keys: "fo")

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Streaks and grace days")
+@Suite("Streaks and grace days", .tags(.integration))
 struct StreakTests {
     func makeStore() -> (ProgressStore, TestClock) {
         let clock = TestClock(now: day(0))

@@ -5,12 +5,71 @@ on:
     branches: [main]
   pull_request:
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
+  gate:
+    name: Release gate
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build
-        run: swift build
-      - name: Test
-        run: swift test
+
+      - name: Toolchain
+        run: |
+          swift --version
+          xcode-select -p
+
+      - name: Version label
+        id: ver
+        run: echo "version=0.0.0-ci.${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # The ONE gate. CI runs the same script a developer runs before pushing
+      # (scripts/gate.sh), so local and CI cannot drift. It fails the build on:
+      #   - a build failure or ANY new compiler warning (-warnings-as-errors)
+      #   - any test failure, in any tier
+      #   - a @Suite that is untagged, double-tagged, or dropped from the tiers
+      #   - any third-party dependency appearing in Package.swift
+      #   - the app bundle failing to assemble or losing its Content resources
+      #   - an Info.plist that fails plutil -lint or is missing a required key
+      #   - the DMG failing to build, mount, or match its published checksum
+      - name: Gate
+        run: bash scripts/gate.sh "${{ steps.ver.outputs.version }}"
+
+      - name: Job summary
+        if: always()
+        run: cat .build/gate-logs/summary.md >> "$GITHUB_STEP_SUMMARY" || true
+
+      # A reviewer can download this and run the real app from any PR.
+      - name: Upload DMG
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vimkin-${{ steps.ver.outputs.version }}-dmg
+          path: |
+            dist/vimkin-${{ steps.ver.outputs.version }}.dmg
+            dist/vimkin-${{ steps.ver.outputs.version }}.dmg.sha256
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Quarantine note
+        if: always()
+        run: |
+          {
+            echo
+            echo "The attached DMG is **unsigned and unnotarised**. After copying"
+            echo "\`Vimkin.app\` to \`/Applications\`, clear the quarantine flag:"
+            echo
+            echo '```'
+            echo 'xattr -dr com.apple.quarantine /Applications/Vimkin.app'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload gate logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-logs-${{ github.run_id }}
+          path: .build/gate-logs/
+          retention-days: 7

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Progress store: XP, unlocks, persistence")
+@Suite("Progress store: XP, unlocks, persistence", .tags(.integration))
 struct ProgressStoreTests {
     func makeStore(directory: URL, alternates: [URL] = [], clock: TestClock) -> ProgressStore {
         ProgressStore(

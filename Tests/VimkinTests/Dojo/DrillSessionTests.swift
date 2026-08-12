@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Dojo: session bookkeeping and summary math")
+@Suite("Dojo: session bookkeeping and summary math", .tags(.integration))
 struct DrillSessionTests {
 
     /// A two-command session: one `dd` drill, then one `$` drill.

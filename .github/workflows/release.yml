@@ -9,22 +9,28 @@ permissions:
 
 jobs:
   release:
+    name: Gate and publish
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: swift --version
 
       - name: Version from tag
         id: ver
         run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
 
-      - name: Run tests
-        run: swift test
+      # Identical to the CI gate — a tag cannot take a shortcut past any check
+      # a pull request has to pass. It also produces the release artifacts
+      # (dist/Vimkin.app, the DMG and its .sha256) as a side effect, and
+      # verifies the DMG mounts and its checksum matches before we publish it.
+      - name: Gate
+        run: bash scripts/gate.sh "${{ steps.ver.outputs.version }}"
 
-      - name: Build app bundle
-        run: bash scripts/make-app.sh "${{ steps.ver.outputs.version }}"
-
-      - name: Create DMG
-        run: bash scripts/create-dmg.sh "${{ steps.ver.outputs.version }}"
+      - name: Job summary
+        if: always()
+        run: cat .build/gate-logs/summary.md >> "$GITHUB_STEP_SUMMARY" || true
 
       - name: Release
         uses: softprops/action-gh-release@v2
@@ -33,3 +39,28 @@ jobs:
             dist/vimkin-${{ steps.ver.outputs.version }}.dmg
             dist/vimkin-${{ steps.ver.outputs.version }}.dmg.sha256
           generate_release_notes: true
+          body: |
+            ## Install
+
+            1. Download `vimkin-${{ steps.ver.outputs.version }}.dmg` below.
+            2. Open it and drag **Vimkin** to **Applications**.
+            3. This build is **unsigned and unnotarised**, so macOS quarantines
+               it. Clear the flag once:
+
+               ```sh
+               xattr -dr com.apple.quarantine /Applications/Vimkin.app
+               ```
+
+            Verify the download:
+
+            ```sh
+            shasum -a 256 -c vimkin-${{ steps.ver.outputs.version }}.dmg.sha256
+            ```
+
+      - name: Upload gate logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-logs-${{ github.run_id }}
+          path: .build/gate-logs/
+          retention-days: 30

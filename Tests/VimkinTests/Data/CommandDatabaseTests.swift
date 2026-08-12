@@ -16,7 +16,7 @@ import Testing
 //     -Xswiftc -Xfrontend -Xswiftc -disable-cross-import-overlays
 // Full-Xcode environments (including CI) run plain `swift test` unchanged.
 
-@Suite("CommandDatabase schema validation")
+@Suite("CommandDatabase schema validation", .tags(.integration))
 struct CommandDatabaseSchemaTests {
 
     private func loadDatabase() throws -> CommandDatabase {
@@ -92,7 +92,7 @@ struct CommandDatabaseSchemaTests {
     }
 }
 
-@Suite("CommandDatabase lookup and search")
+@Suite("CommandDatabase lookup and search", .tags(.integration))
 struct CommandDatabaseLookupTests {
 
     private func loadDatabase() throws -> CommandDatabase {

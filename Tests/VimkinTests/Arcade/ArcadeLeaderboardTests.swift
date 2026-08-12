@@ -3,7 +3,7 @@ import Testing
 
 @testable import Vimkin
 
-@Suite("Arcade: the self-leaderboard")
+@Suite("Arcade: the self-leaderboard", .tags(.integration))
 struct ArcadeLeaderboardTests {
 
     // MARK: - Best / average math

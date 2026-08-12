@@ -5,7 +5,7 @@ import Testing
 // register kind semantics, undo, counts composing across operator and motion.
 // Behavior references: :h d, :h c, :h dd, :h p, :h u, :h word-motions (dw clamp), :h cw.
 
-@Suite struct DeleteOperatorTests {
+@Suite(.tags(.unit)) struct DeleteOperatorTests {
     @Test func dwDeletesWordAndTrailingSpace() {
         var engine = VimEngine(text: "hello world")
         let events = engine.feed(keys: "dw")
@@ -142,7 +142,7 @@ import Testing
     }
 }
 
-@Suite struct ChangeOperatorTests {
+@Suite(.tags(.unit)) struct ChangeOperatorTests {
     @Test func cwActsLikeCeOnWord() {
         // :h cw — cw on a non-blank behaves like ce (does not eat trailing space)
         var engine = VimEngine(text: "hello world")
@@ -180,7 +180,7 @@ import Testing
     }
 }
 
-@Suite struct YankPutRegisterTests {
+@Suite(.tags(.unit)) struct YankPutRegisterTests {
     @Test func ywYanksWithoutMutating() {
         var engine = VimEngine(text: "hello world")
         let events = engine.feed(keys: "yw")
@@ -283,7 +283,7 @@ import Testing
     }
 }
 
-@Suite struct UndoTests {
+@Suite(.tags(.unit)) struct UndoTests {
     @Test func undoRestoresBufferAndCursorAfterDw() {
         var engine = VimEngine(text: "hello world")
         engine.feed(keys: "w")   // cursor col 6

@@ -77,7 +77,7 @@ private func makeStore() -> ProgressStore {
 
 // MARK: - Tests
 
-@Suite("Lesson runner: rep counting")
+@Suite("Lesson runner: rep counting", .tags(.unit))
 struct LessonRunnerRepTests {
 
     @Test("a correct attempt advances the rep counter")
@@ -145,7 +145,7 @@ struct LessonRunnerRepTests {
     }
 }
 
-@Suite("Lesson runner: accuracy gate")
+@Suite("Lesson runner: accuracy gate", .tags(.integration))
 struct LessonRunnerAccuracyTests {
 
     @Test("3 clean correct reps complete the step")
@@ -205,7 +205,7 @@ struct LessonRunnerAccuracyTests {
     }
 }
 
-@Suite("Lesson runner: progress store writes")
+@Suite("Lesson runner: progress store writes", .tags(.integration))
 struct LessonRunnerProgressTests {
 
     @Test("completing a lesson unlocks exactly the commands it teaches")
@@ -266,7 +266,7 @@ struct LessonRunnerProgressTests {
     }
 }
 
-@Suite("Lesson runner: attempt setup")
+@Suite("Lesson runner: attempt setup", .tags(.unit))
 struct LessonRunnerSetupTests {
 
     @Test("makeEngine opens the step document and applies the setup keys")

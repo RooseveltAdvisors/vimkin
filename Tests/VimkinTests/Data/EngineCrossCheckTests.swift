@@ -7,7 +7,7 @@ import Testing
 /// CommandEvent, changes state, or (for prefixes like `f`/`d`) enters a pending
 /// mode that Esc cleanly cancels. A record whose keys the engine silently
 /// ignores means the database and engine have drifted apart.
-@Suite("Command DB ↔ VimEngine cross-check")
+@Suite("Command DB ↔ VimEngine cross-check", .tags(.integration))
 struct EngineCrossCheckTests {
 
     static let sampleText = """

@@ -4,7 +4,7 @@ import Testing
 // Batch 4 — text objects: iw aw i" a" i( a( ip ap with d/c/y.
 // Behavior references: :h text-objects (iw, aw, i", a", ib/i(, ab/a(, ip, ap).
 
-@Suite struct WordObjectTests {
+@Suite(.tags(.unit)) struct WordObjectTests {
     @Test func diwDeletesInnerWord() {
         var engine = VimEngine(text: "hello world")
         engine.feed(keys: "ll")  // middle of "hello"
@@ -57,7 +57,7 @@ import Testing
     }
 }
 
-@Suite struct QuoteObjectTests {
+@Suite(.tags(.unit)) struct QuoteObjectTests {
     @Test func diQuoteDeletesInsideQuotes() {
         var engine = VimEngine(text: #"say "hi there" now"#)
         engine.feed(keys: "fh")  // cursor inside the quotes (on 'h' of hi)
@@ -115,7 +115,7 @@ import Testing
     }
 }
 
-@Suite struct ParenObjectTests {
+@Suite(.tags(.unit)) struct ParenObjectTests {
     @Test func diParenDeletesInsideParens() {
         var engine = VimEngine(text: "call(arg1, arg2)")
         engine.feed(keys: "f1")   // inside parens (the '1' of arg1)
@@ -170,7 +170,7 @@ import Testing
     }
 }
 
-@Suite struct ParagraphObjectTests {
+@Suite(.tags(.unit)) struct ParagraphObjectTests {
     @Test func dipDeletesParagraphLinewise() {
         var engine = VimEngine(text: "para one a\npara one b\n\npara two")
         let events = engine.feed(keys: "dip")
@@ -204,7 +204,7 @@ import Testing
     }
 }
 
-@Suite struct TextObjectEdgeTests {
+@Suite(.tags(.unit)) struct TextObjectEdgeTests {
     @Test func textObjectWithoutOperatorInNormalModeIsInsertEntry() {
         // "i" alone in normal mode enters insert; "iw" would then type "w"
         var engine = VimEngine(text: "abc")

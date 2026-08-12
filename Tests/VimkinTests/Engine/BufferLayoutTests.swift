@@ -5,7 +5,7 @@ import Testing
 // No-wrap policy with horizontal scroll; visible-rect / scroll-to-cursor math.
 // Consumed by both the editor renderer (U4) and the game world renderer (U7).
 
-@Suite struct BufferLayoutTests {
+@Suite(.tags(.unit)) struct BufferLayoutTests {
     private var layout: BufferLayout {
         BufferLayout(
             cellSize: LayoutSize(width: 10, height: 20),

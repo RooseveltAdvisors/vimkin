@@ -8,7 +8,7 @@ import CoreGraphics
 import Testing
 @testable import Vimkin
 
-@Suite("Juice: CommandEvent → juice tier mapping")
+@Suite("Juice: CommandEvent → juice tier mapping", .tags(.unit))
 struct JuiceMapperTests {
     // MARK: - Representative events, one per category
 

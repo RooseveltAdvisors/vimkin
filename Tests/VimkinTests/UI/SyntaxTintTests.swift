@@ -1,7 +1,7 @@
 import Testing
 @testable import Vimkin
 
-@Suite("SyntaxTint: line-based classifier for md / json / yaml")
+@Suite("SyntaxTint: line-based classifier for md / json / yaml", .tags(.unit))
 struct SyntaxTintTests {
     // MARK: - Markdown
 

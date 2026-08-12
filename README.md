@@ -31,13 +31,19 @@ Vimkin is a native macOS game that teaches Vim motions the way your hands actual
 
 ## Development
 
-SwiftPM project — no Xcode required:
+SwiftPM project — no Xcode required, and no third-party dependencies:
 
 ```bash
-swift build          # build
-swift test           # run tests
+swift build                      # build
+bash scripts/test.sh             # run all 497 tests
+bash scripts/test-tier.sh unit   # or one tier: unit | integration | acceptance
+bash scripts/gate.sh             # the full release gate — what CI runs
 bash scripts/make-app.sh 0.1.0   # assemble Vimkin.app into dist/
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the three-tier test taxonomy, where a
+new test goes, and the zero-dependency / zero-warning rules CI enforces, and
+[docs/release-checklist.md](docs/release-checklist.md) for how a release is cut.
 
 ## License
 

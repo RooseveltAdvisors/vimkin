@@ -12,7 +12,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Juice: audio degrades safely without assets")
+@Suite("Juice: audio degrades safely without assets", .tags(.integration))
 struct JuiceAudioTests {
     private var nowhere: URL {
         URL(fileURLWithPath: "/var/empty/vimkin-no-such-audio-dir-\(UUID().uuidString)")

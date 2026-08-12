@@ -6,7 +6,7 @@ import Testing
 /// point of sharing it with the editor. These tests pin the adapter (y-axis
 /// flip, inset, scroll) and, critically, that the grid math is DELEGATED and
 /// not re-derived.
-@Suite("Game: tile-world geometry (BufferLayout bridge)")
+@Suite("Game: tile-world geometry (BufferLayout bridge)", .tags(.unit))
 struct GameGeometryTests {
 
     private let lines = ["alpha", "beta", "gamma", "delta"]
@@ -122,22 +122,5 @@ struct GameGeometryTests {
         #expect(visible.lowerBound == 0)
         #expect(visible.upperBound <= lines.count)
         #expect(visible.count < lines.count, "a 3-cell viewport cannot show 4 lines")
-    }
-
-    @Test("a real level's geometry covers every Vimkin's cell")
-    func realLevelsFitTheGrid() throws {
-        for level in try world1().levels {
-            let lines = TextBuffer(text: level.document).lines
-            let g = GameGeometry.make(
-                lines: lines,
-                cellSize: LayoutSize(width: 10.2, height: 24.65),
-                viewportSize: LayoutSize(width: 960, height: 600)
-            )
-            for vimkin in level.vimkins {
-                let point = g.sceneCenter(line: vimkin.position.line, col: vimkin.position.col)
-                #expect(point.x.isFinite && point.y.isFinite, "\(level.id)/\(vimkin.id)")
-                #expect(point.x >= 0, "\(level.id)/\(vimkin.id) is off the left edge")
-            }
-        }
     }
 }

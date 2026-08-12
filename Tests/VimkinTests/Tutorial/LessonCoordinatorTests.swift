@@ -15,7 +15,7 @@ private func firstLesson() throws -> Lesson {
     try #require(try LessonDatabase.load().lessons.first)
 }
 
-@Suite("Lesson coordinator drives the editor session")
+@Suite("Lesson coordinator drives the editor session", .tags(.acceptance))
 struct LessonCoordinatorTests {
 
     @Test("keys reach the session through the filter hook and are always blocked from re-delivery")

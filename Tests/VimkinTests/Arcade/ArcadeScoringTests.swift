@@ -3,7 +3,7 @@ import Testing
 
 @testable import Vimkin
 
-@Suite("Arcade: scoring — speed counts, accuracy still dominates")
+@Suite("Arcade: scoring — speed counts, accuracy still dominates", .tags(.unit))
 struct ArcadeScoringTests {
 
     // MARK: - The invariant (property test)

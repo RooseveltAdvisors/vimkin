@@ -5,7 +5,7 @@ import Testing
 /// The reality gate for generated drills: an unsolvable drill is worse than no
 /// drill. Every generated drill is replayed through a REAL VimEngine from its
 /// own start state, and the drill's own success predicate must fire.
-@Suite("Dojo: every generated drill is solvable")
+@Suite("Dojo: every generated drill is solvable", .tags(.integration))
 struct DrillSolvabilityTests {
 
     @Test("a large seeded sample of generated drills is solved by its canonical keys")
