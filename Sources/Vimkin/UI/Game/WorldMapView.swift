@@ -16,6 +16,21 @@ public struct AdventureView: View {
     @State private var results = GameProgressStore()
     @State private var playing: Level?
     @State private var loadError: String?
+    /// Keyboard shell (U18): the ten pages are one `hjkl` grid.
+    @State private var keyboard = KeyboardSurfaceModel()
+    @State private var cursor = ListCursor(count: 0, columns: AdventureView.columns)
+
+    /// The grid is a FIXED three columns, not `.adaptive`.
+    ///
+    /// This is load-bearing for the keyboard, not a cosmetic choice: `l` must
+    /// move the selection to the card the player SEES to the right, so the
+    /// cursor's column count and the layout's column count have to be the same
+    /// number. An adaptive grid re-flows with the window, and the moment it
+    /// does, `j` starts skipping cards. One constant, used by both.
+    /// `nonisolated` so the cursor arithmetic can be asserted from a plain test
+    /// context — a `View` is `@MainActor`, and an immutable `Int` needs none of
+    /// that isolation.
+    public nonisolated static let columns = 3
 
     public init(progress: ProgressStore?, onExit: @escaping () -> Void) {
         self.progress = progress
@@ -64,20 +79,53 @@ public struct AdventureView: View {
                         .foregroundStyle(GameTheme.coral)
                         .padding(24)
                 } else {
-                    ScrollView {
-                        LazyVGrid(
-                            columns: [GridItem(.adaptive(minimum: 250), spacing: 16)],
-                            spacing: 16
-                        ) {
-                            ForEach(world?.levels ?? []) { level in
-                                card(for: level)
+                    ScrollViewReader { proxy in
+                        ScrollView {
+                            LazyVGrid(
+                                columns: Array(
+                                    repeating: GridItem(.flexible(), spacing: 16),
+                                    count: Self.columns
+                                ),
+                                spacing: 16
+                            ) {
+                                ForEach(world?.levels ?? []) { level in
+                                    card(for: level).id(level.id)
+                                }
+                            }
+                            .padding(24)
+                        }
+                        .onChange(of: cursor.index) { _, index in
+                            guard let levels = world?.levels, levels.indices.contains(index)
+                            else { return }
+                            withAnimation(.easeOut(duration: 0.15)) {
+                                proxy.scrollTo(levels[index].id, anchor: .center)
                             }
                         }
-                        .padding(24)
                     }
                 }
                 Spacer(minLength: 0)
             }
+        }
+        .keyboardSurface(keyboard, map: SurfaceKeys.worldMap, onAction: handle)
+        .onChange(of: world?.levels.count ?? 0) { _, count in cursor.setCount(count) }
+        .task(id: world?.levels.count ?? 0) { cursor.setCount(world?.levels.count ?? 0) }
+    }
+
+    // MARK: - Keyboard
+
+    private func handle(_ action: NavAction) {
+        if cursor.apply(action) { return }
+        switch action {
+        case .activate:
+            guard let world, world.levels.indices.contains(cursor.index) else { return }
+            let level = world.levels[cursor.index]
+            // Locked pages stay reachable by the cursor so `j` never skips a
+            // gap in the grid — they just do not open.
+            if results.isUnlocked(level: level, in: world) { playing = level }
+        case .back:
+            onExit()
+        default:
+            break
         }
     }
 
@@ -92,9 +140,15 @@ public struct AdventureView: View {
                     .foregroundStyle(GameTheme.parchment.opacity(0.55))
             }
             Spacer()
-            Button("← Title", action: onExit)
-                .buttonStyle(.bordered)
-                .font(.system(.body, design: .monospaced))
+            Button(action: onExit) {
+                HStack(spacing: 6) {
+                    Text("Hub")
+                        .font(.system(.body, design: .monospaced))
+                    Keycap(label: "Esc")
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(GameTheme.parchment.opacity(0.7))
         }
         .padding(.horizontal, 24)
         .padding(.top, 24)
@@ -116,6 +170,8 @@ public struct AdventureView: View {
         let unlocked = world.map { results.isUnlocked(level: level, in: $0) } ?? false
         let result = results.result(levelID: level.id)
         let cleared = result?.completed ?? false
+        let selected = world?.levels.indices.contains(cursor.index) == true
+            && world?.levels[cursor.index].id == level.id
 
         return Button {
             if unlocked { playing = level }
@@ -174,6 +230,7 @@ public struct AdventureView: View {
                     lineWidth: 1
                 )
             )
+            .navSelected(selected, radius: 14)
         }
         .buttonStyle(.plain)
         .disabled(!unlocked)

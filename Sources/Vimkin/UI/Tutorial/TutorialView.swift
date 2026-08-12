@@ -16,6 +16,9 @@ public struct TutorialView: View {
     @State private var openLesson: Lesson?
     /// Bumped when a lesson closes so the path re-reads the store.
     @State private var revision = 0
+    /// Keyboard shell (U15): the path is one long j/k list across all stages.
+    @State private var keyboard = KeyboardSurfaceModel()
+    @State private var cursor = ListCursor(count: 0)
 
     public init(store: ProgressStore, onBack: @escaping () -> Void) {
         self.store = store
@@ -43,15 +46,23 @@ public struct TutorialView: View {
             header
             Divider().overlay(TutorialTheme.hairline)
             if let progress {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 28) {
-                        ForEach(progress.database.tiers, id: \.self) { tier in
-                            stage(tier: tier, progress: progress)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        VStack(alignment: .leading, spacing: 28) {
+                            ForEach(progress.database.tiers, id: \.self) { tier in
+                                stage(tier: tier, progress: progress)
+                            }
+                        }
+                        .padding(28)
+                        .frame(maxWidth: 720, alignment: .leading)
+                        .frame(maxWidth: .infinity)
+                    }
+                    .onChange(of: cursor.index) { _, index in
+                        guard ordered.indices.contains(index) else { return }
+                        withAnimation(.easeOut(duration: 0.15)) {
+                            proxy.scrollTo(ordered[index].id, anchor: .center)
                         }
                     }
-                    .padding(28)
-                    .frame(maxWidth: 720, alignment: .leading)
-                    .frame(maxWidth: .infinity)
                 }
             } else {
                 Text(loadError ?? "loading lessons…")
@@ -61,6 +72,31 @@ public struct TutorialView: View {
             }
         }
         .onAppear(perform: load)
+        .keyboardSurface(keyboard, map: SurfaceKeys.lessonPath, onAction: handle)
+        .onChange(of: ordered.count) { _, count in cursor.setCount(count) }
+    }
+
+    // MARK: - Keyboard
+
+    /// The path as the keyboard sees it: every lesson, in stage order, one flat
+    /// list — so `j` walks off the bottom of Stage 1 into the top of Stage 2.
+    private var ordered: [Lesson] {
+        guard let progress else { return [] }
+        return progress.database.tiers.flatMap { progress.database.lessons(tier: $0) }
+    }
+
+    private func handle(_ action: NavAction) {
+        if cursor.apply(action) { return }
+        switch action {
+        case .activate:
+            guard let progress, ordered.indices.contains(cursor.index) else { return }
+            let lesson = ordered[cursor.index]
+            if progress.isUnlocked(lesson, in: store) { openLesson = lesson }
+        case .back:
+            onBack()
+        default:
+            break
+        }
     }
 
     private var header: some View {
@@ -70,6 +106,7 @@ public struct TutorialView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(TutorialTheme.dim)
+            .keyboardShortcut("l", modifiers: .command)
 
             Text("Learn")
                 .font(.system(size: 22, weight: .bold, design: .monospaced))
@@ -101,6 +138,7 @@ public struct TutorialView: View {
                 .tracking(1.2)
             ForEach(progress.database.lessons(tier: tier)) { lesson in
                 row(lesson: lesson, progress: progress)
+                    .id(lesson.id)
             }
         }
     }
@@ -109,6 +147,8 @@ public struct TutorialView: View {
         let unlocked = progress.isUnlocked(lesson, in: store)
         let complete = progress.isComplete(lesson, in: store)
         let mastery = progress.masteryState(lesson, in: store)
+        let selected = ordered.indices.contains(cursor.index)
+            && ordered[cursor.index].id == lesson.id
 
         return Button {
             if unlocked { openLesson = lesson }
@@ -149,8 +189,11 @@ public struct TutorialView: View {
                     .strokeBorder(complete ? TutorialTheme.success.opacity(0.35) : TutorialTheme.hairline, lineWidth: 1)
             )
             .contentShape(Rectangle())
+            .navSelected(selected)
         }
         .buttonStyle(.plain)
+        // Locked rows stay reachable by the cursor (so `j` never skips a gap)
+        // but the click target is off, exactly as before.
         .disabled(!unlocked)
     }
 
