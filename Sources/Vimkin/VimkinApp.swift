@@ -119,11 +119,16 @@ struct ContentView: View {
     private var hubStatus: HubStatus {
         let lessons = try? LessonDatabase.load()
         let today = ArcadeDay.key(for: Date())
+        // `completedLessons` is a set of COMMAND ids, not lesson ids — a lesson
+        // that teaches three commands puts three entries in it. Counting it
+        // directly showed "11/16 learned" on the hub next to "3 of 16" on the
+        // lessons page. TutorialProgress is the one true counter.
+        let progress = lessons.map { TutorialProgress(database: $0) }
         return HubStatus(
             levelsCleared: levelResults.state.results.values.filter(\.completed).count,
             levelCount: levelCount,
             todaysScore: leaderboard.result(day: today)?.score,
-            lessonsLearned: store.state.completedLessons.count,
+            lessonsLearned: progress?.completedCount(in: store) ?? 0,
             lessonCount: lessons?.lessons.count ?? 0,
             skillsUnlocked: store.unlockedCommands.count,
             practicedDays: store.practiceTrend().practicedDays,
