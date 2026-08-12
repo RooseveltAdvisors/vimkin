@@ -35,6 +35,15 @@
     "concept": "`h` `j` `k` `l` are your arrow keys, sitting under your right hand: `h` left, `j` down, `k` up, `l` right. Same four directions, no reach across the keyboard.",
     "document": "- milk\n- bread\n- coffee beans",
     "teaches": ["motion.left", "motion.down", "motion.up", "motion.right"],
+    "outcomePreview": {
+      "caption": "four directions under your right hand — the ghosts show where each lands",
+      "doors": [
+        { "keys": "h", "note": "moves one character left" },
+        { "keys": "j", "note": "moves one line down" },
+        { "keys": "k", "note": "moves one line up" },
+        { "keys": "l", "note": "moves one character right" }
+      ]
+    },
     "steps": [
       {
         "id": "t1-hjkl-down",
@@ -87,14 +96,26 @@
       "action.open-below",
       "action.open-above"
     ],
+    "outcomePreview": {
+      "caption": "six doors, six landing spots — the ghosts show where each one drops you",
+      "doors": [
+        { "keys": "i", "note": "types BEFORE the cursor" },
+        { "keys": "a", "note": "types AFTER the cursor" },
+        { "keys": "I", "note": "jumps to the first real character of the line" },
+        { "keys": "A", "note": "jumps to the end of the line" },
+        { "keys": "o", "note": "opens a new line BELOW" },
+        { "keys": "O", "note": "opens a new line ABOVE" }
+      ]
+    },
     "steps": [
       {
         "id": "t1-insert-after",
         "instruction": "Press `a` to start typing just AFTER the cursor.",
         "targetCommandID": "action.insert-after",
+        "setupKeys": "jj",
         "canonicalKeys": "a",
         "requiredReps": 2,
-        "success": { "verb": "enterInsert", "mode": "insert", "cursorLine": 0, "cursorCol": 1 },
+        "success": { "verb": "enterInsert", "mode": "insert", "cursorLine": 2, "cursorCol": 1 },
         "hint": "`a` is for append. `i` would put you before the cursor instead."
       },
       {
@@ -111,9 +132,10 @@
         "id": "t1-insert-line-end",
         "instruction": "Press `A` to jump to the end of this line and type there.",
         "targetCommandID": "action.insert-line-end",
+        "setupKeys": "jj",
         "canonicalKeys": "A",
         "requiredReps": 2,
-        "success": { "verb": "enterInsert", "mode": "insert", "cursorLine": 0, "cursorCol": 10 },
+        "success": { "verb": "enterInsert", "mode": "insert", "cursorLine": 2, "cursorCol": 11 },
         "hint": "Capital `A` — hold Shift. It is append, but all the way to the end."
       },
       {
@@ -231,6 +253,16 @@
       "motion.file-top",
       "motion.file-bottom"
     ],
+    "outcomePreview": {
+      "caption": "five anchors — watch how far each one throws the cursor",
+      "doors": [
+        { "keys": "0", "note": "goes to the very start of the line" },
+        { "keys": "^", "note": "goes to the first real character of the line" },
+        { "keys": "$", "note": "goes to the end of the line" },
+        { "keys": "gg", "note": "goes to the top of the file" },
+        { "keys": "G", "note": "goes to the bottom of the file" }
+      ]
+    },
     "steps": [
       {
         "id": "t2-anchors-line-end",

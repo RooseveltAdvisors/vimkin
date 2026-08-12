@@ -8,6 +8,21 @@
 // Accuracy-first, and never punitive: a wrong key resets the page and offers a
 // hint, nothing is timed, no counter ever goes backwards, and the keys can be
 // revealed on request instead of being withheld as a difficulty tax.
+//
+// U19 — practice you can SEE. Three things were invisible before:
+//
+//   1. what a key DID. Ghost cursors now show, before you commit, where every
+//      door of the lesson would land you (`i` here, `A` at the line end, `o` on
+//      a new line below); the real cursor then FLIES to the one you chose while
+//      the others fade.
+//   2. what you PRESSED. A key-cap punches in on every press — cyan when it was
+//      right, coral and wobbling when it wasn't — and multi-key commands build
+//      a visible chord row (`d` → `di` → `diw`).
+//   3. the OUTCOME. The judged page is held on screen for a beat (the editor
+//      keeps rendering the session that was just judged, with input closed)
+//      so the flight, the mode morph and the burst finish before the document
+//      resets under you. Without that hold the page reset instantly and the
+//      whole point of the rep was never seen — which is the bug this fixes.
 
 import SwiftUI
 
@@ -15,15 +30,29 @@ public struct LessonView: View {
     private let onExit: () -> Void
     @State private var coordinator: LessonCoordinator
     /// Graded game-feel (plan U8): the reward tier is keyed off the command's
-    /// own complexity, so the grammar step of a lesson lands hardest.
+    /// own complexity, so the grammar step of a lesson lands hardest. On this
+    /// surface it is driven by REPS (see `LessonCoordinator.onReward`), not by
+    /// raw keystrokes — the achievement is getting it right, not typing.
     @State private var juice = JuiceConductor(audio: JuiceAudio())
     /// Keyboard shell (U15). The concept card and the "learned" card are chrome;
     /// the practice beat between them belongs entirely to the VimEngine.
     @State private var keyboard = KeyboardSurfaceModel()
 
+    /// The session currently on screen. Lags `coordinator.session` by the hold
+    /// window after a judged attempt, so the outcome is seen before the reset.
+    @State private var displayedSession: EditorSession?
+    @State private var displayedAttemptID = 0
+    @State private var holding = false
+
+    /// How long a judged attempt stays on screen before the page resets.
+    private static let holdDuration = UInt64(0.72 * 1_000_000_000)
+
     public init(lesson: Lesson, store: ProgressStore?, onExit: @escaping () -> Void) {
         self.onExit = onExit
-        _coordinator = State(initialValue: LessonCoordinator(lesson: lesson, store: store))
+        let preview = (try? LessonDatabase.load())?.preview(lessonID: lesson.id)
+        _coordinator = State(
+            initialValue: LessonCoordinator(lesson: lesson, store: store, preview: preview)
+        )
     }
 
     public var body: some View {
@@ -97,15 +126,20 @@ public struct LessonView: View {
     }
 
     /// Reps as filled pips. It only ever fills — a miss costs a hint, not a pip.
+    /// A freshly earned pip springs up to full size, so the counter is something
+    /// you watch happen rather than something you notice later.
     private var repMeter: some View {
         HStack(spacing: 5) {
             ForEach(0 ..< max(coordinator.repsRequired, 1), id: \.self) { index in
+                let filled = index < coordinator.repsCompleted
                 Circle()
-                    .fill(index < coordinator.repsCompleted ? TutorialTheme.success : TutorialTheme.faint)
-                    .frame(width: 8, height: 8)
+                    .fill(filled ? TutorialTheme.success : TutorialTheme.faint)
+                    .frame(width: filled ? 12 : 8, height: filled ? 12 : 8)
+                    .shadow(color: TutorialTheme.success.opacity(filled ? 0.7 : 0), radius: 6)
             }
         }
-        .animation(.easeOut(duration: 0.18), value: coordinator.repsCompleted)
+        .frame(height: 14)
+        .animation(.spring(response: 0.34, dampingFraction: 0.45), value: coordinator.repsCompleted)
     }
 
     // MARK: - Concept
@@ -156,24 +190,59 @@ public struct LessonView: View {
     private var practice: some View {
         VStack(spacing: 0) {
             instructionBar
-            EditorView(
-                session: coordinator.session,
-                // The chrome's router sits IN FRONT of the lesson judge, so a
-                // second Esc leaves without the judge ever seeing the key —
-                // and every other key still reaches the lesson unchanged.
-                filter: keyboard.engineFilter(
-                    mode: { .engine },
-                    map: { SurfaceKeys.lessonPractice },
-                    base: coordinator.handle(key:),
-                    onAction: navigate
-                )
-            )
-            .id(coordinator.attemptID)
+            editorStage
             feedbackBar
         }
         .juice(juice)
-        // Every attempt builds a fresh session; re-chain onto its event hook.
-        .task(id: coordinator.attemptID) { juice.attach(to: coordinator.session) }
+        .onAppear {
+            displayedSession = coordinator.session
+            displayedAttemptID = coordinator.attemptID
+            coordinator.onReward = { event in juice.emit(event) }
+        }
+        .onChange(of: coordinator.attemptID) { _, id in hold(untilAttempt: id) }
+    }
+
+    private var editorStage: some View {
+        let shown = displayedSession ?? coordinator.session
+        return ZStack(alignment: .bottomTrailing) {
+            EditorView(
+                session: shown,
+                filter: { key in
+                    // Input closes while the judged outcome is on screen, so an
+                    // eager next keystroke cannot cut the animation short.
+                    if holding { return .block(reason: "watch what that did") }
+                    // Otherwise the chrome's router sits IN FRONT of the lesson
+                    // judge: a second Esc leaves without the judge ever seeing
+                    // the key, and every other key reaches the lesson unchanged.
+                    return keyboard.engineFilter(
+                        mode: { .engine },
+                        map: { SurfaceKeys.lessonPractice },
+                        base: coordinator.handle(key:),
+                        onAction: navigate
+                    )(key)
+                },
+                feedback: coordinator.keys,
+                ghosts: holding ? [] : coordinator.ghosts
+            )
+            .id(displayedAttemptID)
+
+            KeyPressVisualizer(hub: coordinator.keys)
+                .padding(.horizontal, 22)
+                .padding(.bottom, 44)
+        }
+        .wobble(trigger: coordinator.keys.wobble, amplitude: 10)
+    }
+
+    /// Keeps the judged page (and its animation) on screen for a beat, then
+    /// swaps in the fresh attempt.
+    private func hold(untilAttempt id: Int) {
+        holding = true
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: Self.holdDuration)
+            displayedSession = coordinator.session
+            displayedAttemptID = id
+            holding = false
+        }
     }
 
     private var instructionBar: some View {
@@ -203,11 +272,22 @@ public struct LessonView: View {
                     Spacer()
                 }
             }
+            ghostLegend
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
         .background(TutorialTheme.panel)
+    }
+
+    /// The one-liner over an outcome preview, while its ghosts are up.
+    @ViewBuilder
+    private var ghostLegend: some View {
+        let ghosts = holding ? [] : coordinator.ghosts
+        if !ghosts.isEmpty, let caption = coordinator.preview?.caption {
+            GhostLegend(caption: caption, ghosts: ghosts)
+                .transition(.opacity)
+        }
     }
 
     private var feedbackBar: some View {
@@ -216,7 +296,7 @@ public struct LessonView: View {
             case .correct(let message):
                 Text("✓").foregroundStyle(TutorialTheme.success)
                 Text(message)
-                    .font(.system(size: 13, design: .monospaced))
+                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
                     .foregroundStyle(TutorialTheme.success)
             case .hint(let hint):
                 Text("↺").foregroundStyle(TutorialTheme.alarm)
@@ -271,7 +351,7 @@ public struct LessonView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .juice(juice)
         // "learned" is the biggest moment in the tutorial — give it the burst.
-        .onAppear { juice.emit(JuiceEvent(tier: .burst, intensity: 1)) }
+        .onAppear { juice.emit(PracticeReward.lessonLearned) }
     }
 
     /// The keys behind the ids this lesson unlocked, for the celebration list.

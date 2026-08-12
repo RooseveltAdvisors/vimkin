@@ -12,6 +12,9 @@ public struct DojoView: View {
     /// Graded game-feel (plan U8): chains onto the drill editor's event hook, so
     /// a `diw` lands harder than a `w` while the drill judging is untouched.
     @State private var juice = JuiceConductor(audio: JuiceAudio())
+    /// Key-cap + chord row (plan U19): the same "what did I just press, and is
+    /// the engine still waiting for more of it?" surface the lessons use.
+    @State private var keys = KeyFeedbackHub()
     /// Command id handed over by the lookup overlay's "Practice this →".
     private let focusCommandID: String?
     private let onClose: () -> Void
@@ -211,7 +214,8 @@ public struct DojoView: View {
                         mode: { .engine },
                         map: { SurfaceKeys.dojoDrilling },
                         onAction: navigate
-                    )
+                    ),
+                    feedback: keys
                 )
                     .id(model.editorGeneration)
                     .frame(minHeight: 320)
@@ -220,6 +224,10 @@ public struct DojoView: View {
                         RoundedRectangle(cornerRadius: 14)
                             .strokeBorder(DojoTheme.paper.opacity(0.08), lineWidth: 1)
                     )
+                    .overlay(alignment: .bottomTrailing) {
+                        KeyPressVisualizer(hub: keys).padding(18)
+                    }
+                    .wobble(trigger: keys.wobble, amplitude: 10)
 
                 feedbackStrip
                 footerControls
@@ -227,7 +235,17 @@ public struct DojoView: View {
             .padding(18)
             .juice(juice)
             // A fresh editor arrives with every drill; re-chain onto its hook.
-            .task(id: model.editorGeneration) { juice.attach(to: editor) }
+            .task(id: model.editorGeneration) {
+                juice.attach(to: editor)
+                keys.clearChord()
+            }
+            .onChange(of: model.feedback) { _, judgement in
+                switch judgement {
+                case .correct: keys.grade(.right)
+                case .nearMiss, .incorrect: keys.grade(.wrong)
+                case nil: break
+                }
+            }
         } else {
             ProgressView().tint(DojoTheme.cyan)
         }
