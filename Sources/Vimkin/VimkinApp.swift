@@ -18,6 +18,7 @@ struct ContentView: View {
     /// Where the app currently is. Title screen by default.
     private enum Route {
         case title
+        case play
         case learn
         case playground
     }
@@ -34,6 +35,8 @@ struct ContentView: View {
         switch route {
         case .title:
             titleScreen
+        case .play:
+            AdventureView(progress: store, onExit: { route = .title })
         case .learn:
             TutorialView(store: store, onBack: { route = .title })
         case .playground:
@@ -56,8 +59,10 @@ struct ContentView: View {
                     .font(.system(.title3, design: .monospaced))
                     .foregroundStyle(.white.opacity(0.6))
                 HStack(spacing: 12) {
-                    Button("Learn") { route = .learn }
+                    Button("Adventure") { route = .play }
                         .buttonStyle(.borderedProminent)
+                    Button("Learn") { route = .learn }
+                        .buttonStyle(.bordered)
                     Button("Practice") { showDojo = true }
                         .buttonStyle(.bordered)
                     Button("Playground") { route = .playground }
