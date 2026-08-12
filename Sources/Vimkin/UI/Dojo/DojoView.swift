@@ -118,7 +118,7 @@ public struct DojoView: View {
             } else {
                 DojoPanel {
                     VStack(spacing: 6) {
-                        Text("\(unlocked.count) skills unlocked")
+                        Text("\(unlocked.count) skill\(unlocked.count == 1 ? "" : "s") unlocked")
                             .font(.system(.headline, design: .monospaced))
                             .foregroundStyle(DojoTheme.cyan)
                         Text("The set leans toward whatever has gone rusty.")
