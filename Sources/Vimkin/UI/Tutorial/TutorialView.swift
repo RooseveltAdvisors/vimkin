@@ -19,6 +19,9 @@ public struct TutorialView: View {
     /// Keyboard shell (U15): the path is one long j/k list across all stages.
     @State private var keyboard = KeyboardSurfaceModel()
     @State private var cursor = ListCursor(count: 0)
+    /// U21 — the one-screen "how this works", first visit only.
+    @State private var firstRun = FirstRunStore()
+    @State private var showGuide = false
 
     public init(store: ProgressStore, onBack: @escaping () -> Void) {
         self.store = store
@@ -36,7 +39,16 @@ public struct TutorialView: View {
             } else {
                 path
             }
+            if showGuide, openLesson == nil {
+                FirstRunGuideView(guide: ModeGuide.guide(for: .lessons)) { dismissGuide() }
+            }
         }
+        .task { showGuide = firstRun.shouldShowGuide(for: .lessons) }
+    }
+
+    private func dismissGuide() {
+        showGuide = false
+        firstRun.markSeen(.lessons)
     }
 
     // MARK: - Path
@@ -86,6 +98,11 @@ public struct TutorialView: View {
     }
 
     private func handle(_ action: NavAction) {
+        // While the guide is up, any navigation key means "got it".
+        if showGuide {
+            dismissGuide()
+            return
+        }
         if cursor.apply(action) { return }
         switch action {
         case .activate:

@@ -62,6 +62,20 @@ public enum ArcadeScoring {
         return min(comboCeiling, 1 + comboStep * Double(comboLength - 1))
     }
 
+    /// The multiplier, formatted for a HUD: `×1.3`, `×2`.
+    ///
+    /// Exists because the run's flame badge used to render the STREAK LENGTH
+    /// with a `×` in front of it, which reads as the multiplier and is not: a
+    /// streak of three is worth ×1.30, not ×3.
+    public static func comboMultiplierLabel(comboLength: Int) -> String {
+        let value = comboMultiplier(comboLength: comboLength)
+        let rounded = (value * 100).rounded() / 100
+        if rounded == rounded.rounded() {
+            return "\u{00D7}\(Int(rounded))"
+        }
+        return String(format: "\u{00D7}%.2g", rounded)
+    }
+
     // MARK: - Points
 
     /// Points for one drill.

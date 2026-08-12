@@ -18,6 +18,9 @@ public struct ArcadeView: View {
     /// Keyboard shell (U18). The run itself is the engine's; the front door and
     /// the result card either side of it are menus.
     @State private var keyboard = KeyboardSurfaceModel()
+    /// U21 — the one-screen "how this works", first visit only.
+    @State private var firstRun = FirstRunStore()
+    @State private var showGuide = false
 
     private let onClose: () -> Void
 
@@ -41,7 +44,12 @@ public struct ArcadeView: View {
                 Divider().overlay(ArcadeTheme.paper.opacity(0.08))
                 content
             }
+
+            if showGuide {
+                FirstRunGuideView(guide: ModeGuide.guide(for: .dailyRun)) { dismissGuide() }
+            }
         }
+        .task { showGuide = firstRun.shouldShowGuide(for: .dailyRun) }
         .onReceive(Self.heartbeat) { now in
             displayNow = now
             model.tick()
@@ -65,6 +73,11 @@ public struct ArcadeView: View {
     }
 
     private func navigate(_ action: NavAction) {
+        // While the guide is up, any navigation key means "got it".
+        if showGuide {
+            dismissGuide()
+            return
+        }
         switch action {
         case .verb("start"), .activate:
             guard model.isReady else { return }
@@ -82,6 +95,11 @@ public struct ArcadeView: View {
         default:
             break
         }
+    }
+
+    private func dismissGuide() {
+        showGuide = false
+        firstRun.markSeen(.dailyRun)
     }
 
     // MARK: - Chrome
@@ -332,12 +350,19 @@ public struct ArcadeView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 2) {
-                    Text("\(session.score)")
-                        .font(.system(size: 30, weight: .bold, design: .monospaced))
-                        .foregroundStyle(ArcadeTheme.paper)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                        .animation(.snappy(duration: 0.25), value: session.score)
+                    // The big number had no label at all; "114" beside a clock
+                    // could have been anything.
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("\(session.score)")
+                            .font(.system(size: 30, weight: .bold, design: .monospaced))
+                            .foregroundStyle(ArcadeTheme.paper)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+                            .animation(.snappy(duration: 0.25), value: session.score)
+                        Text("points")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(ArcadeTheme.paper.opacity(0.45))
+                    }
                     Text("\(session.drillsCleared) of \(session.drills.count) cleared")
                         .font(.system(.caption, design: .monospaced))
                         .foregroundStyle(ArcadeTheme.paper.opacity(0.45))
@@ -371,11 +396,20 @@ public struct ArcadeView: View {
         }
     }
 
+    /// The flame counts CLEAN CLEARS IN A ROW, and it used to be drawn as
+    /// `×3` — which reads as "three times the points" when the real multiplier
+    /// at a streak of three is ×1.30. It says what it counts now, and the
+    /// multiplier it is actually worth rides beside it.
     private func comboBadge(_ combo: Int) -> some View {
         HStack(spacing: 4) {
             Image(systemName: "flame.fill")
-            Text("×\(max(1, combo))")
+            Text("\(max(0, combo)) in a row")
                 .monospacedDigit()
+            if combo > 1 {
+                Text(ArcadeScoring.comboMultiplierLabel(comboLength: combo))
+                    .monospacedDigit()
+                    .opacity(0.75)
+            }
         }
         .font(.system(.callout, design: .monospaced).weight(.semibold))
         .foregroundStyle(ArcadeTheme.comboTint(combo))
@@ -393,9 +427,11 @@ public struct ArcadeView: View {
         ArcadePanel(padding: 14) {
             HStack(alignment: .firstTextBaseline, spacing: 12) {
                 Image(systemName: "bolt.fill").foregroundStyle(ArcadeTheme.amber)
-                Text(drill.instruction)
-                    .font(.system(.title3, design: .monospaced))
-                    .foregroundStyle(ArcadeTheme.paper)
+                LessonText(
+                    text: drill.instruction,
+                    font: .system(.title3, design: .monospaced),
+                    color: ArcadeTheme.paper
+                )
                 Spacer(minLength: 0)
                 Text(drill.documentName)
                     .font(.system(.caption, design: .monospaced))
@@ -421,9 +457,9 @@ public struct ArcadeView: View {
     private func feedbackRow(icon: String, tint: Color, text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon).foregroundStyle(tint)
-            Text(text)
-                .font(ArcadeTheme.mono)
-                .foregroundStyle(ArcadeTheme.paper.opacity(0.9))
+            // Backticked keys ride in the near-miss copy; verbatim `Text`
+            // printed the backticks.
+            LessonText(text: text, font: ArcadeTheme.mono, color: ArcadeTheme.paper.opacity(0.9))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 14)

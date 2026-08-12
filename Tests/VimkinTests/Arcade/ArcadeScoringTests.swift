@@ -143,4 +143,24 @@ struct ArcadeScoringTests {
             }
         }
     }
+
+    // MARK: - How the combo is LABELLED (U21)
+
+    @Test("the combo label reports the multiplier, not the streak length")
+    func comboLabelIsTheMultiplierNotTheStreak() {
+        // The run HUD used to draw the streak length with a `×` in front of it,
+        // so three clean clears read as "triple points" when they are worth
+        // ×1.30. The label and the maths now agree.
+        #expect(ArcadeScoring.comboMultiplierLabel(comboLength: 1) == "\u{00D7}1")
+        #expect(ArcadeScoring.comboMultiplierLabel(comboLength: 3) == "\u{00D7}1.3")
+        #expect(ArcadeScoring.comboMultiplierLabel(comboLength: 0) == "\u{00D7}1")
+    }
+
+    @Test("the combo label honours the ceiling")
+    func comboLabelHonoursTheCeiling() {
+        #expect(
+            ArcadeScoring.comboMultiplierLabel(comboLength: 50)
+                == "\u{00D7}\(Int(ArcadeScoring.comboCeiling))"
+        )
+    }
 }

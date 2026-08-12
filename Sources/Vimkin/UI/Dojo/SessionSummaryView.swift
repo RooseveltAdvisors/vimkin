@@ -11,6 +11,22 @@ struct SessionSummaryView: View {
     var onPracticeAgain: () -> Void = {}
     var onDone: () -> Void = {}
 
+    /// Used only to turn a command id into the name a person would say. The
+    /// summary used to print the raw id — `action.insert-line-end` — straight
+    /// at the learner.
+    @State private var commands: CommandDatabase? = try? CommandDatabase.load()
+
+    /// "Append at line end" when the database has it, otherwise a readable
+    /// fallback built from the id itself. Never the raw id.
+    private func commandName(_ commandID: String) -> String {
+        if let title = commands?.command(id: commandID)?.title, !title.isEmpty {
+            return title
+        }
+        return commandID
+            .split(separator: ".").dropFirst().joined(separator: " ")
+            .replacingOccurrences(of: "-", with: " ")
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
@@ -83,11 +99,13 @@ struct SessionSummaryView: View {
                     ForEach(gains, id: \.commandID) { skill in
                         HStack {
                             keyBadge(skill.commandKeys)
-                            Text(skill.commandID)
+                            Text(commandName(skill.commandID))
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(DojoTheme.paper.opacity(0.55))
                             Spacer()
-                            Text("+\(Int(skill.masteryDelta.rounded()))")
+                            // A bare "+15" is a number with no unit. The bars
+                            // below are the same 0-100 scale.
+                            Text("+\(Int(skill.masteryDelta.rounded())) mastery")
                                 .font(.system(.body, design: .monospaced))
                                 .foregroundStyle(DojoTheme.leaf)
                         }
@@ -134,9 +152,18 @@ struct SessionSummaryView: View {
                 Text("This set")
                     .font(.system(.headline, design: .monospaced))
                     .foregroundStyle(DojoTheme.paper.opacity(0.8))
+                // Four unlabelled columns of numbers said nothing on their own.
+                HStack(spacing: 12) {
+                    Text("keys").frame(width: 44, alignment: .leading)
+                    Text("right").frame(width: 52, alignment: .leading)
+                    Text("mastery").frame(maxWidth: .infinity, alignment: .leading)
+                    Text("of 100").frame(width: 46, alignment: .trailing)
+                }
+                .font(.system(size: 10, design: .monospaced))
+                .foregroundStyle(DojoTheme.paper.opacity(0.35))
                 ForEach(summary.practiceNext, id: \.commandID) { skill in
                     HStack(spacing: 12) {
-                        keyBadge(skill.commandKeys)
+                        keyBadge(skill.commandKeys).frame(width: 44, alignment: .leading)
                         Text("\(skill.correct)/\(skill.attempts)")
                             .font(.system(.callout, design: .monospaced))
                             .foregroundStyle(DojoTheme.paper.opacity(0.7))
@@ -145,7 +172,7 @@ struct SessionSummaryView: View {
                         Text("\(Int(skill.masteryAfter.rounded()))")
                             .font(.system(.caption, design: .monospaced))
                             .foregroundStyle(DojoTheme.paper.opacity(0.55))
-                            .frame(width: 32, alignment: .trailing)
+                            .frame(width: 46, alignment: .trailing)
                     }
                 }
             }

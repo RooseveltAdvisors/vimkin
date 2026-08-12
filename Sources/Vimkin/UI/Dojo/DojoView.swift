@@ -21,6 +21,15 @@ public struct DojoView: View {
     /// Keyboard shell (U18). The dojo is a SHEET, so `Esc` getting back out of
     /// it is the difference between a keyboard app and a focus trap.
     @State private var keyboard = KeyboardSurfaceModel()
+    /// U21 — the one-screen "how this works", first visit only.
+    @State private var firstRun = FirstRunStore()
+    @State private var showGuide = false
+    /// U21 — the dojo names the JOB and not the KEYS on purpose, but before now
+    /// there was no way at all to be told the keys: the only exits from "I do
+    /// not know this one" were guessing a near-miss or skipping. `⌘K` reveals,
+    /// exactly as it does in a lesson, and a quiet spell offers it unprompted.
+    @State private var keysRevealed = false
+    @State private var idle = IdleHintModel()
 
     public init(
         focusCommandID: String? = nil,
@@ -45,6 +54,10 @@ public struct DojoView: View {
                 Divider().overlay(DojoTheme.paper.opacity(0.08))
                 content
             }
+
+            if showGuide {
+                FirstRunGuideView(guide: ModeGuide.guide(for: .practice)) { dismissGuide() }
+            }
         }
         .onAppear {
             guard model.phase == .idle else { return }
@@ -52,6 +65,7 @@ public struct DojoView: View {
                 model.startFocusedSession(commandID: focusCommandID)
             }
         }
+        .task { showGuide = firstRun.shouldShowGuide(for: .practice) }
         .keyboardSurface(
             keyboard, map: map, mode: mode,
             hasInnerCapture: model.phase == .drilling, onAction: navigate
@@ -73,6 +87,11 @@ public struct DojoView: View {
     }
 
     private func navigate(_ action: NavAction) {
+        // While the guide is up, any navigation key means "got it".
+        if showGuide {
+            dismissGuide()
+            return
+        }
         switch action {
         case .verb("start"):
             guard !model.generator.eligibleCommandIDs.isEmpty else { return }
@@ -91,6 +110,11 @@ public struct DojoView: View {
         default:
             break
         }
+    }
+
+    private func dismissGuide() {
+        showGuide = false
+        firstRun.markSeen(.practice)
     }
 
     // MARK: - Chrome
@@ -173,7 +197,11 @@ public struct DojoView: View {
             } else {
                 DojoPanel {
                     VStack(spacing: 6) {
-                        Text("\(unlocked.count) skill\(unlocked.count == 1 ? "" : "s") unlocked")
+                        // NOT "unlocked": the hub counts every unlocked COMMAND
+                        // and this counts the ones that are DRILLABLE, so the
+                        // two numbers differ and sat on screen together saying
+                        // the same words. This one says what it actually is.
+                        Text("\(unlocked.count) skill\(unlocked.count == 1 ? "" : "s") ready to drill")
                             .font(.system(.headline, design: .monospaced))
                             .foregroundStyle(DojoTheme.cyan)
                         Text("The set leans toward whatever has gone rusty.")
@@ -210,11 +238,14 @@ public struct DojoView: View {
                     session: editor,
                     // The chrome routes first, so `Esc Esc` leaves the set; in
                     // engine mode every key falls through to the drill.
-                    filter: keyboard.engineFilter(
-                        mode: { .engine },
-                        map: { SurfaceKeys.dojoDrilling },
-                        onAction: navigate
-                    ),
+                    filter: { key in
+                        idle.noteActivity()
+                        return keyboard.engineFilter(
+                            mode: { .engine },
+                            map: { SurfaceKeys.dojoDrilling },
+                            onAction: navigate
+                        )(key)
+                    },
                     feedback: keys
                 )
                     .id(model.editorGeneration)
@@ -238,7 +269,10 @@ public struct DojoView: View {
             .task(id: model.editorGeneration) {
                 juice.attach(to: editor)
                 keys.clearChord()
+                keysRevealed = false
+                idle.begin()
             }
+            .onDisappear { idle.end() }
             .onChange(of: model.feedback) { _, judgement in
                 switch judgement {
                 case .correct: keys.grade(.right)
@@ -253,15 +287,55 @@ public struct DojoView: View {
 
     private func instructionBar(_ drill: Drill) -> some View {
         DojoPanel {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Image(systemName: "sparkle")
-                    .foregroundStyle(DojoTheme.amber)
-                Text(drill.instruction)
-                    .font(.system(.title3, design: .monospaced))
-                    .foregroundStyle(DojoTheme.paper)
-                    .textSelection(.enabled)
-                Spacer(minLength: 0)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Image(systemName: "sparkle")
+                        .foregroundStyle(DojoTheme.amber)
+                    // `LessonText`, not `Text`: the drill phrases carry
+                    // backticks (`Delete the word \`barrels\``) and a plain
+                    // `Text(String)` is verbatim, so the backticks were being
+                    // printed on screen.
+                    LessonText(
+                        text: drill.instruction,
+                        font: .system(.title3, design: .monospaced),
+                        color: DojoTheme.paper
+                    )
+                    Spacer(minLength: 0)
+                }
+                revealRow(drill)
+                if idle.isDue, !keysRevealed {
+                    IdleHintBar(text: IdleHintBar.forKeys(drill.solutionKeys))
+                }
             }
+        }
+        .animation(.easeOut(duration: 0.2), value: idle.isDue)
+    }
+
+    /// The missing escape hatch: a drill that names the job and not the keys
+    /// needs a way to be told the keys, or "I don't know this one" is a dead
+    /// end. No penalty — the dojo scores accuracy, and looking is not a miss.
+    @ViewBuilder
+    private func revealRow(_ drill: Drill) -> some View {
+        HStack(spacing: 8) {
+            if keysRevealed {
+                Text("press")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundStyle(DojoTheme.paper.opacity(0.5))
+                Keycap(label: drill.solutionKeys)
+            } else {
+                Button { keysRevealed = true } label: {
+                    HStack(spacing: 6) {
+                        Text("show me the keys")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundStyle(DojoTheme.paper.opacity(0.5))
+                            .underline()
+                        Keycap(label: "⌘K")
+                    }
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("k", modifiers: .command)
+            }
+            Spacer(minLength: 0)
         }
     }
 
@@ -301,9 +375,10 @@ public struct DojoView: View {
     private func feedbackRow(icon: String, tint: Color, text: String) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: icon).foregroundStyle(tint)
-            Text(text)
-                .font(DojoTheme.mono)
-                .foregroundStyle(DojoTheme.paper.opacity(0.9))
+            // The near-miss copy is written with backticks around the keys
+            // ("Close — `j` goes down a line; `k` goes up a line."); verbatim
+            // `Text` printed them.
+            LessonText(text: text, font: DojoTheme.mono, color: DojoTheme.paper.opacity(0.9))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 14)

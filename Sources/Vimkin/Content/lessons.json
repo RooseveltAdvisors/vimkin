@@ -97,7 +97,7 @@
       "action.open-above"
     ],
     "outcomePreview": {
-      "caption": "six doors, six landing spots — the ghosts show where each one drops you",
+      "caption": "five new doors, plus the i you already know — the ghosts show where each one lands",
       "doors": [
         { "keys": "i", "note": "types BEFORE the cursor" },
         { "keys": "a", "note": "types AFTER the cursor" },
