@@ -14,6 +14,9 @@ import SwiftUI
 public struct LessonView: View {
     private let onExit: () -> Void
     @State private var coordinator: LessonCoordinator
+    /// Graded game-feel (plan U8): the reward tier is keyed off the command's
+    /// own complexity, so the grammar step of a lesson lands hardest.
+    @State private var juice = JuiceConductor(audio: JuiceAudio())
 
     public init(lesson: Lesson, store: ProgressStore?, onExit: @escaping () -> Void) {
         self.onExit = onExit
@@ -124,6 +127,9 @@ public struct LessonView: View {
                 .id(coordinator.attemptID)
             feedbackBar
         }
+        .juice(juice)
+        // Every attempt builds a fresh session; re-chain onto its event hook.
+        .task(id: coordinator.attemptID) { juice.attach(to: coordinator.session) }
     }
 
     private var instructionBar: some View {
@@ -215,6 +221,9 @@ public struct LessonView: View {
             .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .juice(juice)
+        // "learned" is the biggest moment in the tutorial — give it the burst.
+        .onAppear { juice.emit(JuiceEvent(tier: .burst, intensity: 1)) }
     }
 
     /// The keys behind the ids this lesson unlocked, for the celebration list.
