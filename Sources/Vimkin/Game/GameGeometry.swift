@@ -42,16 +42,21 @@ public struct GameGeometry: Equatable, Sendable {
                 height: max(cellSize.height, content.height)
             )
         )
-        // A short document in a tall scene would otherwise pile up against the
-        // bottom edge (SpriteKit's origin), leaving dead space above it.
-        // Centre the page in the leftover room; taller-than-viewport documents
-        // keep the plain inset and scroll as before.
+        // A page smaller than the scene would otherwise pile up against the
+        // bottom-left corner (SpriteKit's origin), leaving dead space above and
+        // to the right. Centre it in whatever room is left over; a page that
+        // overflows an axis keeps the plain inset and scrolls as before.
         let contentHeight = Double(lines.count) * cellSize.height
-        let slack = max(0, content.height - contentHeight)
+        let contentWidth = Double(lines.map(\.count).max() ?? 0) * cellSize.width
+        let slackY = max(0, content.height - contentHeight)
+        let slackX = max(0, content.width - contentWidth)
         return GameGeometry(
             layout: layout,
             contentHeight: contentHeight,
-            inset: LayoutSize(width: inset.width, height: inset.height + slack / 2)
+            inset: LayoutSize(
+                width: inset.width + slackX / 2,
+                height: inset.height + slackY / 2
+            )
         )
     }
 

@@ -58,6 +58,14 @@ struct GameGeometryTests {
         #expect(abs(above - below) < 0.001, "page must be vertically centred")
     }
 
+    @Test("a narrow page is centred horizontally too")
+    func narrowPageIsCentredHorizontally() {
+        // Widest line "gamma"/"delta" = 5 cells x 10pt = 50pt inside a 400pt
+        // viewport with 20pt insets: 310pt of slack, so 155pt each side.
+        let g = geometry()
+        #expect(g.scenePoint(line: 0, col: 0).x == 20 + 155)
+    }
+
     @Test("a page taller than the viewport is not centred — it scrolls")
     func tallPageKeepsPlainInset() {
         let tall = GameGeometry.make(
@@ -71,7 +79,9 @@ struct GameGeometryTests {
 
     @Test("the inset offsets the whole world, and columns run left to right")
     func insetAndColumns() {
-        let g = geometry()
+        // Viewport sized so the page fills it exactly: no centring slack, so
+        // the raw inset is visible.
+        let g = geometry(viewport: LayoutSize(width: 90, height: 100))
         #expect(g.scenePoint(line: 0, col: 0).x == 20)
         #expect(g.scenePoint(line: 0, col: 4).x == 20 + 40)
     }
