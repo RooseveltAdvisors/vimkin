@@ -9,6 +9,9 @@ import SwiftUI
 
 public struct DojoView: View {
     @State private var model: DojoModel
+    /// Graded game-feel (plan U8): chains onto the drill editor's event hook, so
+    /// a `diw` lands harder than a `w` while the drill judging is untouched.
+    @State private var juice = JuiceConductor(audio: JuiceAudio())
     /// Command id handed over by the lookup overlay's "Practice this →".
     private let focusCommandID: String?
     private let onClose: () -> Void
@@ -159,6 +162,9 @@ public struct DojoView: View {
                 footerControls
             }
             .padding(18)
+            .juice(juice)
+            // A fresh editor arrives with every drill; re-chain onto its hook.
+            .task(id: model.editorGeneration) { juice.attach(to: editor) }
         } else {
             ProgressView().tint(DojoTheme.cyan)
         }
