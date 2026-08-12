@@ -13,18 +13,22 @@ final class SpriteCache: @unchecked Sendable {
 
     /// Returns the texture for a sprite name, or nil when that art is absent.
     /// Misses are cached too — a missing file is looked up once, not per frame.
-    func texture(named name: String) -> SKTexture? {
+    ///
+    /// - Parameter subdirectory: where in `Content/` the art lives. Characters
+    ///   are in `Content/sprites`; the terrain tileset is in `Content/tiles`.
+    func texture(named name: String, in subdirectory: String = "Content/sprites") -> SKTexture? {
         lock.lock()
         defer { lock.unlock() }
-        if let cached = textures[name] { return cached }
+        let key = "\(subdirectory)/\(name)"
+        if let cached = textures[key] { return cached }
 
         let url = Bundle.vimkinResources.url(
-            forResource: name, withExtension: "png", subdirectory: "Content/sprites"
+            forResource: name, withExtension: "png", subdirectory: subdirectory
         )
         let texture = url
             .flatMap { NSImage(contentsOf: $0) }
             .map { SKTexture(image: $0) }
-        textures[name] = texture
+        textures[key] = texture
         return texture
     }
 }

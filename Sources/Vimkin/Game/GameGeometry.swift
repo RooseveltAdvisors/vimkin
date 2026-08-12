@@ -24,6 +24,12 @@ public struct GameGeometry: Equatable, Sendable {
         self.inset = inset
     }
 
+    /// The tile world's cell size (U13). Chunky and near-square on purpose:
+    /// this is a tile map you walk, not a text view you read. Lives here rather
+    /// than in the scene so the camera and terrain tests can use it without
+    /// pulling SpriteKit into the test build.
+    public static let worldTile = LayoutSize(width: 28, height: 30)
+
     /// Builds geometry for a document at a given cell size and viewport.
     public static func make(
         lines: [String],
