@@ -165,11 +165,16 @@ final class OverlayPanel: NSPanel {
             animator().alphaValue = 0
             animator().setFrame(Self.scaledFrame(for: targetScreen), display: true)
         }, completionHandler: { [weak self] in
-            guard let self, !self.isShown else { return }
-            self.visualEffectView?.state = .inactive
-            self.orderOut(nil)
-            self.alphaValue = 1
-            self.reposition()
+            // AppKit delivers this on the main thread, but the closure type is
+            // not main-actor annotated — assume the isolation rather than hop,
+            // so teardown lands in the same runloop turn as the animation end.
+            MainActor.assumeIsolated {
+                guard let self, !self.isShown else { return }
+                self.visualEffectView?.state = .inactive
+                self.orderOut(nil)
+                self.alphaValue = 1
+                self.reposition()
+            }
         })
     }
 

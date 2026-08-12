@@ -58,7 +58,7 @@ public struct TextBuffer: Equatable, Hashable, Sendable {
     /// Insert a string (may contain newlines) at a position. Returns the position just past the inserted text.
     @discardableResult
     mutating func insert(_ s: String, at p: Position) -> Position {
-        var chars = Array(lines[p.line])
+        let chars = Array(lines[p.line])
         let col = min(p.col, chars.count)
         let head = String(chars[..<col])
         let tail = String(chars[col...])
