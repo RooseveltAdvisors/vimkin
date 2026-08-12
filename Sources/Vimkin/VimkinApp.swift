@@ -25,6 +25,10 @@ struct ContentView: View {
     @State private var route: Route = .title
     /// The local progress spine (U9), shared by every learning surface.
     @State private var store = ProgressStore()
+    // The dojo is a sheet rather than a route: the lookup overlay's
+    // "Practice this →" can raise it from anywhere in the app.
+    @State private var showDojo = false
+    @State private var practiceCommandID: String?
 
     var body: some View {
         switch route {
@@ -54,12 +58,28 @@ struct ContentView: View {
                 HStack(spacing: 12) {
                     Button("Learn") { route = .learn }
                         .buttonStyle(.borderedProminent)
+                    Button("Practice") { showDojo = true }
+                        .buttonStyle(.bordered)
                     Button("Playground") { route = .playground }
                         .buttonStyle(.bordered)
                 }
                 .font(.system(.body, design: .monospaced))
                 .padding(.top, 24)
             }
+        }
+        .sheet(isPresented: $showDojo) {
+            DojoView(focusCommandID: practiceCommandID) {
+                showDojo = false
+                practiceCommandID = nil
+            }
+            .frame(minWidth: 860, minHeight: 620)
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: OverlayController.practiceCommandNotification)
+        ) { note in
+            practiceCommandID = note.object as? String
+            showDojo = true
         }
     }
 }
