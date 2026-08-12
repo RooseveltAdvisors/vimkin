@@ -6,24 +6,26 @@ teaches: everything at once - and one letter put back by hand
 intro: Here it is. The Worm chewed a hole in the word that keeps the hall lit, and it left four Vimkins knotted into the page. Free them, mend the word, then come home to the top.
 allowed: [motion.left, motion.down, motion.up, motion.right, motion.word-forward, motion.word-back, motion.word-end, motion.line-start, motion.first-char, motion.line-end, motion.file-top, motion.file-bottom, motion.find-forward, motion.find-back, motion.till-forward, motion.till-back, motion.repeat-find, motion.repeat-find-reverse, action.insert-before, action.escape]
 par: 34
-solution: "G$ggjjwfrie\ejj$jjj^gg$"
+solution: "G$ggjjfrie\ej$jjj^gg$"
 vimkins:
-  - { name: Fettleknot, line: 11, col: 47, rescue: reach }
-  - { name: Lomm, line: 4, col: 36, rescue: reach }
-  - { name: Sedge, line: 7, col: 2, rescue: reach }
+  - { name: Fettleknot, line: 13, col: 15, rescue: reach }
   - { name: Wickern, line: 2, col: 10, rescue: written, text: lantern, cheer: Wickern lives inside the mended word. }
+  - { name: Lomm, line: 3, col: 38, rescue: reach, cheer: Lomm had wedged itself into the damp end of the line. }
+  - { name: Sedge, line: 6, col: 2, rescue: reach, cheer: Sedge was standing on the first swept board. }
 goals:
   - { rescue: reach, line: 0, col: 36 }
 ---
-# The hall at the end of the notebook
+# the hall at the end of the notebook
 
 * the lantrn in the hall is lit again
 * the door still sticks in damp weather
 * the third stair complains but holds
 
-  somebody swept in here without being asked
-  and left the broom leaning where it belongs
+  somebody swept in here unasked
+  and left the broom where it belongs
+broom.
 
-The Worm went out through the margin at dawn.
-It will be back. Notebooks are always being written.
-Close the page at the top when everyone is home.
+# the Worm went out through the margin
+it will be back. notebooks get written.
+close the page at the top when
+everyone is home

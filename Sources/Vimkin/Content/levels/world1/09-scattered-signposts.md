@@ -6,23 +6,25 @@ teaches: choosing the cheapest motion, five times running
 intro: Five Vimkins, one page, and a Worm that counts your keystrokes. Pick the motion that costs the least. That is the whole art.
 allowed: [motion.left, motion.down, motion.up, motion.right, motion.word-forward, motion.word-back, motion.word-end, motion.line-start, motion.first-char, motion.line-end, motion.file-top, motion.file-bottom, motion.find-forward, motion.find-back, motion.till-forward, motion.till-back, motion.repeat-find, motion.repeat-find-reverse]
 par: 26
-solution: G$ggjj^jjjjf@j$b
+solution: jj^jjjjf@G$k
 vimkins:
-  - { name: Alder, line: 11, col: 35, rescue: reach }
   - { name: Runnel, line: 2, col: 2, rescue: reach }
   - { name: Fettle, line: 4, col: 2, rescue: reach }
   - { name: Wisp, line: 6, col: 15, rescue: reach, cheer: Wisp had been sitting on an at-sign for a week. }
-  - { name: Kettle, line: 7, col: 47, rescue: reach, cheer: Kettle was the last one out. }
+  - { name: Kettle, line: 12, col: 34, rescue: reach, cheer: Kettle was the last one out. }
+  - { name: Alder, line: 13, col: 5, rescue: reach, cheer: Alder was hiding under the full stop. }
 ---
-# Signposts - the field notes nobody filed
+# signposts - field notes nobody filed
 
-  north gate: painted blue, sticks in the wet
-  the old well: covered, do not stand on the lid
-  hedge gap: only a person of hedge-gap size fits
+  north gate: blue, sticks in the wet
+  the old well
+  hedge gap: only a hedge-gap fits
 
-contact: warden@fieldnotes.example for the key
-contact: the farm at the bend if the warden is out
+contact: warden@fieldnotes.example
+or the farm at the bend
 
-The Worm rearranged three of these signs for fun.
-Two of them now point at a pond.
-One points at a very confused sheep.
+# the Worm had a busy night
+it turned three signs around
+two now point at a pond
+one points at a very confused sheep
+sheep.
