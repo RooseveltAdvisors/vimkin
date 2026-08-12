@@ -26,13 +26,31 @@ enum EditorTheme {
     }
 
     static func badgeColor(for mode: Mode) -> Color {
+        Color(hex: badgeHex(for: mode))
+    }
+
+    /// Same palette as `badgeColor`, as raw hex — the animated cursor blends
+    /// between two modes' colours mid-morph, which needs components, not a
+    /// `Color`.
+    static func badgeHex(for mode: Mode) -> UInt32 {
         switch mode {
-        case .normal: return cursor
-        case .insert: return leaf
-        case .visual: return amber
-        case .operatorPending: return coral
-        case .commandLine: return text
+        case .normal: return 0x7DE8D8       // cursor cyan
+        case .insert: return 0x8BD97A       // leaf
+        case .visual: return 0xFFC46B       // amber
+        case .operatorPending: return 0xF2836B // coral
+        case .commandLine: return 0xF2EBDD  // parchment
         }
+    }
+
+    /// Linear blend between two palette colours.
+    static func mix(_ from: UInt32, _ to: UInt32, _ t: Double) -> Color {
+        let f = min(max(t, 0), 1)
+        func channel(_ shift: UInt32) -> Double {
+            let a = Double((from >> shift) & 0xFF)
+            let b = Double((to >> shift) & 0xFF)
+            return (a + (b - a) * f) / 255
+        }
+        return Color(red: channel(16), green: channel(8), blue: channel(0))
     }
 
     static func badgeLabel(for mode: Mode) -> String {
