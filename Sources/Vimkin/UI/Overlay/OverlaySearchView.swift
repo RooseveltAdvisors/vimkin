@@ -32,6 +32,7 @@ struct OverlaySearchView: View {
             } else {
                 resultsList
             }
+            hintBar
         }
         .background(OverlayStyle.background.opacity(0.82))
         .onAppear { searchFocused = true }
@@ -60,6 +61,17 @@ struct OverlaySearchView: View {
                 .focused($searchFocused)
                 .onKeyPress(.downArrow) { moveSelection(by: 1); return .handled }
                 .onKeyPress(.upArrow) { moveSelection(by: -1); return .handled }
+                // ⌃N / ⌃P — the Vim-native twins of the arrows, for anyone who
+                // does not want to leave the home row to pick a result.
+                .onKeyPress(phases: [.down, .repeat]) { press in
+                    guard press.modifiers.contains(.control) else { return .ignored }
+                    switch press.characters {
+                    case "n": moveSelection(by: 1); return .handled
+                    case "p": moveSelection(by: -1); return .handled
+                    default: return .ignored
+                    }
+                }
+                .onKeyPress(.escape) { onDismiss(); return .handled }
                 .onKeyPress(.return) {
                     guard let selectedID else { return .ignored }
                     onPractice(selectedID)
@@ -145,6 +157,40 @@ struct OverlaySearchView: View {
             .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
         .buttonStyle(.plain)
+    }
+
+    // MARK: Hint bar
+
+    /// The lookup card is summoned by a global hotkey, so it has to say what to
+    /// do next without a mouse anywhere in sight.
+    private var hintBar: some View {
+        HStack(spacing: 14) {
+            ForEach(SurfaceKeys.lookup.chips) { chip in
+                HStack(spacing: 5) {
+                    ForEach(Array(chip.keys.split(separator: " ").enumerated()), id: \.offset) {
+                        _, cap in
+                        Keycap(label: String(cap))
+                    }
+                    Text(chip.label)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(OverlayStyle.paper.opacity(0.45))
+                }
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 5) {
+                Keycap(label: "⌃N")
+                Keycap(label: "⌃P")
+                Text("move")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundStyle(OverlayStyle.paper.opacity(0.45))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(OverlayStyle.background.opacity(0.6))
+        .overlay(alignment: .top) {
+            Rectangle().fill(OverlayStyle.accent.opacity(0.12)).frame(height: 1)
+        }
     }
 
     // MARK: Empty state

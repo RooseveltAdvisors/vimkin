@@ -17,6 +17,9 @@ public struct LessonView: View {
     /// Graded game-feel (plan U8): the reward tier is keyed off the command's
     /// own complexity, so the grammar step of a lesson lands hardest.
     @State private var juice = JuiceConductor(audio: JuiceAudio())
+    /// Keyboard shell (U15). The concept card and the "learned" card are chrome;
+    /// the practice beat between them belongs entirely to the VimEngine.
+    @State private var keyboard = KeyboardSurfaceModel()
 
     public init(lesson: Lesson, store: ProgressStore?, onExit: @escaping () -> Void) {
         self.onExit = onExit
@@ -34,6 +37,35 @@ public struct LessonView: View {
             }
         }
         .background(TutorialTheme.background)
+        .keyboardSurface(
+            keyboard, map: map, mode: mode,
+            hasInnerCapture: coordinator.phase == .practice, onAction: navigate
+        )
+    }
+
+    // MARK: - Keyboard
+
+    private var mode: InputMode { coordinator.phase == .practice ? .engine : .navigation }
+
+    private var map: KeyMap {
+        switch coordinator.phase {
+        case .concept: return SurfaceKeys.lessonConcept
+        case .practice: return SurfaceKeys.lessonPractice
+        case .complete: return SurfaceKeys.lessonComplete
+        }
+    }
+
+    private func navigate(_ action: NavAction) {
+        switch action {
+        case .verb("start"):
+            coordinator.begin()
+        case .verb("showKeys"):
+            coordinator.keysRevealed = true
+        case .back:
+            onExit()
+        default:
+            break
+        }
     }
 
     // MARK: - Chrome
@@ -45,6 +77,7 @@ public struct LessonView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(TutorialTheme.dim)
+            .keyboardShortcut("l", modifiers: .command)
 
             Text(coordinator.lesson.title)
                 .font(.system(size: 15, weight: .semibold, design: .monospaced))
@@ -103,7 +136,7 @@ public struct LessonView: View {
             Button {
                 coordinator.begin()
             } label: {
-                Text("Start practising")
+                Text("Start practising  ⏎")
                     .font(.system(size: 14, weight: .semibold, design: .monospaced))
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .background(TutorialTheme.glow.opacity(0.18), in: Capsule())
@@ -123,8 +156,19 @@ public struct LessonView: View {
     private var practice: some View {
         VStack(spacing: 0) {
             instructionBar
-            EditorView(session: coordinator.session, filter: coordinator.handle(key:))
-                .id(coordinator.attemptID)
+            EditorView(
+                session: coordinator.session,
+                // The chrome's router sits IN FRONT of the lesson judge, so a
+                // second Esc leaves without the judge ever seeing the key —
+                // and every other key still reaches the lesson unchanged.
+                filter: keyboard.engineFilter(
+                    mode: { .engine },
+                    map: { SurfaceKeys.lessonPractice },
+                    base: coordinator.handle(key:),
+                    onAction: navigate
+                )
+            )
+            .id(coordinator.attemptID)
             feedbackBar
         }
         .juice(juice)
@@ -145,12 +189,16 @@ public struct LessonView: View {
                         Button {
                             coordinator.keysRevealed = true
                         } label: {
-                            Text("show me the keys")
-                                .font(.system(size: 12, design: .monospaced))
-                                .foregroundStyle(TutorialTheme.dim)
-                                .underline()
+                            HStack(spacing: 6) {
+                                Text("show me the keys")
+                                    .font(.system(size: 12, design: .monospaced))
+                                    .foregroundStyle(TutorialTheme.dim)
+                                    .underline()
+                                Keycap(label: "⌘K")
+                            }
                         }
                         .buttonStyle(.plain)
+                        .keyboardShortcut("k", modifiers: .command)
                     }
                     Spacer()
                 }
@@ -210,7 +258,7 @@ public struct LessonView: View {
             .padding(.top, 6)
 
             Button(action: onExit) {
-                Text("Back to lessons")
+                Text("Back to lessons  ⏎")
                     .font(.system(size: 14, weight: .semibold, design: .monospaced))
                     .padding(.horizontal, 20).padding(.vertical, 10)
                     .background(TutorialTheme.success.opacity(0.16), in: Capsule())

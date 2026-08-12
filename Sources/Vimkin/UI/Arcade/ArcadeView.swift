@@ -15,6 +15,9 @@ public struct ArcadeView: View {
     @State private var juice = JuiceConductor(audio: JuiceAudio())
     /// Redraw clock — the HUD reads real time, so it needs a heartbeat.
     @State private var displayNow = Date()
+    /// Keyboard shell (U18). The run itself is the engine's; the front door and
+    /// the result card either side of it are menus.
+    @State private var keyboard = KeyboardSurfaceModel()
 
     private let onClose: () -> Void
 
@@ -43,17 +46,60 @@ public struct ArcadeView: View {
             displayNow = now
             model.tick()
         }
+        .keyboardSurface(
+            keyboard, map: map, mode: mode,
+            hasInnerCapture: model.phase == .running, onAction: navigate
+        )
+    }
+
+    // MARK: - Keyboard
+
+    private var mode: InputMode { model.phase == .running ? .engine : .navigation }
+
+    private var map: KeyMap {
+        switch model.phase {
+        case .idle: return SurfaceKeys.arcadeIdle
+        case .running: return SurfaceKeys.arcadeRunning
+        case .result: return SurfaceKeys.arcadeResult
+        }
+    }
+
+    private func navigate(_ action: NavAction) {
+        switch action {
+        case .verb("start"), .activate:
+            guard model.isReady else { return }
+            model.startDailyRun()
+        case .verb("practise"):
+            guard model.isReady else { return }
+            model.startPracticeRun()
+        case .verb("skip"):
+            model.skipDrill()
+        case .verb("end"):
+            model.endRun()
+        case .verb("done"), .back:
+            model.reset()
+            onClose()
+        default:
+            break
+        }
     }
 
     // MARK: - Chrome
 
     private var header: some View {
         HStack(spacing: 12) {
-            Button(action: onClose) {
-                Label("Close", systemImage: "chevron.left").labelStyle(.titleAndIcon)
+            Button {
+                model.reset()
+                onClose()
+            } label: {
+                HStack(spacing: 6) {
+                    Label("Close", systemImage: "chevron.left").labelStyle(.titleAndIcon)
+                    Keycap(label: model.phase == .running ? "⌘L" : "Esc")
+                }
             }
             .buttonStyle(.plain)
             .foregroundStyle(ArcadeTheme.paper.opacity(0.7))
+            .keyboardShortcut("l", modifiers: .command)
 
             Text("Daily Run")
                 .font(.system(.headline, design: .monospaced))
@@ -154,10 +200,15 @@ public struct ArcadeView: View {
                 }
             }
 
-            Button("Start the run") { model.startDailyRun() }
-                .buttonStyle(.borderedProminent)
-                .tint(ArcadeTheme.amber)
+            Button { model.startDailyRun() } label: {
+                HStack(spacing: 8) {
+                    Text("Start the run")
+                    Keycap(label: "⏎")
+                }
                 .font(ArcadeTheme.mono)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(ArcadeTheme.amber)
         }
     }
 
@@ -182,11 +233,21 @@ public struct ArcadeView: View {
             }
 
             HStack(spacing: 14) {
-                Button("See today's result") { model.startDailyRun() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(ArcadeTheme.cyan)
-                Button("Practise the run") { model.startPracticeRun() }
-                    .buttonStyle(.bordered)
+                Button { model.startDailyRun() } label: {
+                    HStack(spacing: 8) {
+                        Text("See today's result")
+                        Keycap(label: "⏎")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(ArcadeTheme.cyan)
+                Button { model.startPracticeRun() } label: {
+                    HStack(spacing: 8) {
+                        Text("Practise the run")
+                        Keycap(label: "p")
+                    }
+                }
+                .buttonStyle(.bordered)
             }
             .font(ArcadeTheme.mono)
         }
@@ -212,7 +273,14 @@ public struct ArcadeView: View {
                 hud(session)
                 instructionBar(drill)
 
-                EditorView(session: editor)
+                EditorView(
+                    session: editor,
+                    filter: keyboard.engineFilter(
+                        mode: { .engine },
+                        map: { SurfaceKeys.arcadeRunning },
+                        onAction: navigate
+                    )
+                )
                     .id(model.editorGeneration)
                     .frame(minHeight: 300)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -364,18 +432,34 @@ public struct ArcadeView: View {
         .animation(.easeOut(duration: 0.15), value: model.feedback)
     }
 
+    /// ⌘-keyed, not plain-keyed: the run is an ENGINE surface, so a bare `j`
+    /// has to reach the buffer. ⌘ is the one channel the engine never sees.
     private func footerControls(_ session: ArcadeRunSession) -> some View {
         HStack(spacing: 14) {
-            Button("Skip") { model.skipDrill() }
+            runControl("Skip", "⌘J", "j") { model.skipDrill() }
             Spacer()
             if !session.isScored {
                 Text("practice — not scored")
+                    .font(.system(.callout, design: .monospaced))
                     .foregroundStyle(ArcadeTheme.cyan.opacity(0.8))
             }
-            Button("End run") { model.endRun() }
+            runControl("End run", "⌘E", "e") { model.endRun() }
         }
-        .buttonStyle(.plain)
         .font(.system(.callout, design: .monospaced))
         .foregroundStyle(ArcadeTheme.paper.opacity(0.6))
+    }
+
+    private func runControl(
+        _ title: String, _ cap: String, _ shortcut: KeyEquivalent,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(title)
+                Keycap(label: cap)
+            }
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(shortcut, modifiers: .command)
     }
 }

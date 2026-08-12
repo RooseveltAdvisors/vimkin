@@ -24,6 +24,9 @@ public struct GameView: View {
     @State private var showIntro = true
     @State private var toast: String?
     @State private var toastID = 0
+    /// Keyboard shell (U18). The briefing and the win panel are chrome; the
+    /// level itself belongs entirely to the VimEngine.
+    @State private var keyboard = KeyboardSurfaceModel()
 
     public init(
         level: Level,
@@ -53,8 +56,22 @@ public struct GameView: View {
             GameTheme.background.ignoresSafeArea()
 
             KeyCaptureView(
-                filter: { session.state.decision(for: $0) },
-                onBlocked: { _, reason in showToast(reason) },
+                // The chrome's router sits IN FRONT of the level's lock gate,
+                // so `Esc Esc` leaves without the gate ever seeing the key —
+                // and while playing, every other key falls straight through to
+                // the gate exactly as before.
+                filter: keyboard.engineFilter(
+                    mode: { playPhase },
+                    map: { playMap },
+                    base: { session.state.decision(for: $0) },
+                    onAction: navigate
+                ),
+                onBlocked: { _, reason in
+                    // A menu key the chrome swallowed is not a locked command;
+                    // showing the "not yet learned" toast for it would be a lie.
+                    guard !KeyboardSurfaceModel.isChromeBlock(reason) else { return }
+                    showToast(reason)
+                },
                 onKey: handle
             ) {
                 SpriteSceneView(scene: scene)
@@ -74,6 +91,44 @@ public struct GameView: View {
             if session.state.isComplete && !showIntro { winPanel }
         }
         .frame(minWidth: 820, minHeight: 560)
+        // `hasInnerCapture` is true because the SpriteKit surface's own
+        // `KeyCaptureView` above is the one reading plain keys. This modifier
+        // is here for the hint bar, the `?` overlay and the ⌘-verbs — routing
+        // the same press in both places would fire the leave-chord twice.
+        .keyboardSurface(
+            keyboard, map: playMap, mode: playPhase,
+            hasInnerCapture: true, onAction: navigate
+        )
+    }
+
+    // MARK: - Keyboard
+
+    /// The level is the only place the engine owns the keys; the briefing and
+    /// the win panel in front of it are ordinary menus.
+    private var playPhase: InputMode {
+        showIntro || session.state.isComplete ? .navigation : .engine
+    }
+
+    private var playMap: KeyMap {
+        if showIntro { return SurfaceKeys.gameIntro }
+        if session.state.isComplete { return SurfaceKeys.gameWin }
+        return SurfaceKeys.gamePlaying
+    }
+
+    private func navigate(_ action: NavAction) {
+        switch action {
+        case .verb("begin"):
+            showIntro = false
+        case .verb("replay"):
+            session.restart()
+            scene.apply(session.state, step: nil)
+        case .verb("next"), .activate:
+            if let nextLevel, let onAdvance { onAdvance(nextLevel) } else { onExit() }
+        case .verb("worldmap"), .back:
+            onExit()
+        default:
+            break
+        }
     }
 
     // MARK: - Input
@@ -119,10 +174,17 @@ public struct GameView: View {
                 value: "\(session.state.keystrokes)/\(level.par)",
                 tint: session.state.isUnderPar ? GameTheme.leaf : GameTheme.coral
             )
-            Button("Leave", action: onExit)
-                .buttonStyle(.bordered)
-                .font(.system(.caption, design: .monospaced))
-                .allowsHitTesting(true)
+            Button(action: onExit) {
+                HStack(spacing: 6) {
+                    Text("Leave")
+                        .font(.system(.caption, design: .monospaced))
+                    Keycap(label: "Esc")
+                    Keycap(label: "Esc")
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(GameTheme.parchment.opacity(0.7))
+            .allowsHitTesting(true)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -234,10 +296,15 @@ public struct GameView: View {
                 Text(level.teaches)
                     .font(.system(.callout, design: .monospaced))
                     .foregroundStyle(GameTheme.vimkinAmber)
-                Button("Begin") { showIntro = false }
-                    .buttonStyle(.borderedProminent)
-                    .font(.system(.body, design: .monospaced))
-                    .padding(.top, 8)
+                Button { showIntro = false } label: {
+                    HStack(spacing: 8) {
+                        Text("Begin")
+                            .font(.system(.body, design: .monospaced))
+                        Keycap(label: "⏎")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .padding(.top, 8)
             }
             .padding(40)
             .background(GameTheme.inkNavy.opacity(0.95), in: RoundedRectangle(cornerRadius: 18))
@@ -254,17 +321,32 @@ public struct GameView: View {
                 .font(.system(.callout, design: .monospaced))
                 .foregroundStyle(GameTheme.parchment.opacity(0.8))
             HStack(spacing: 12) {
-                Button("Replay") {
+                Button {
                     session.restart()
                     scene.apply(session.state, step: nil)
+                } label: {
+                    HStack(spacing: 7) {
+                        Text("Replay")
+                        Keycap(label: "r")
+                    }
                 }
                 .buttonStyle(.bordered)
                 if let nextLevel, let onAdvance {
-                    Button("Next: \(nextLevel.title)") { onAdvance(nextLevel) }
-                        .buttonStyle(.borderedProminent)
+                    Button { onAdvance(nextLevel) } label: {
+                        HStack(spacing: 7) {
+                            Text("Next: \(nextLevel.title)")
+                            Keycap(label: "⏎")
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                Button("World map", action: onExit)
-                    .buttonStyle(.bordered)
+                Button(action: onExit) {
+                    HStack(spacing: 7) {
+                        Text("World map")
+                        Keycap(label: "m")
+                    }
+                }
+                .buttonStyle(.bordered)
             }
             .font(.system(.body, design: .monospaced))
         }

@@ -15,9 +15,9 @@ struct VimkinApp: App {
 }
 
 struct ContentView: View {
-    /// Where the app currently is. Title screen by default.
+    /// Where the app currently is. The hub by default.
     private enum Route {
-        case title
+        case hub
         case play
         case learn
         case playground
@@ -27,7 +27,7 @@ struct ContentView: View {
         case progress
     }
 
-    @State private var route: Route = .title
+    @State private var route: Route = .hub
     /// The local progress spine (U9), shared by every learning surface.
     @State private var store = ProgressStore()
     /// The arcade's own board (U12), deliberately separate from `store`.
@@ -42,6 +42,13 @@ struct ContentView: View {
     // from anywhere in the app.
     @State private var showDojo = false
     @State private var practiceCommandID: String?
+    /// The hub's keyboard shell (U18). Every route below owns its own.
+    @State private var keyboard = KeyboardSurfaceModel()
+    @State private var cursor = ListCursor(count: Hub.jumpKeys.count)
+    /// Level results, read on the hub for Adventure's status line and owned
+    /// here so the number is fresh when you come back from a level.
+    @State private var levelResults = GameProgressStore()
+    @State private var levelCount = 0
 
     var body: some View {
         routeContent
@@ -66,19 +73,26 @@ struct ContentView: View {
     @ViewBuilder
     private var routeContent: some View {
         switch route {
-        case .title:
-            titleScreen
+        case .hub:
+            hub
         case .play:
-            AdventureView(progress: store, onExit: { route = .title })
+            AdventureView(progress: store, onExit: goHome)
         case .learn:
-            TutorialView(store: store, onBack: { route = .title })
+            TutorialView(store: store, onBack: goHome)
         case .playground:
-            PlaygroundView(onBack: { route = .title })
+            PlaygroundView(onBack: goHome)
         case .arcade:
-            ArcadeView(model: arcadeModel, onClose: { route = .title })
+            ArcadeView(model: arcadeModel, onClose: goHome)
         case .progress:
-            MasteryMapView(store: store, database: database, onClose: { route = .title })
+            MasteryMapView(store: store, database: database, onClose: goHome)
         }
+    }
+
+    /// Back to the hub, re-reading the level results so Adventure's status line
+    /// is right the moment you land (the adventure surface owns its own store).
+    private func goHome() {
+        levelResults = GameProgressStore()
+        route = .hub
     }
 
     /// Enters the daily run, building its model on first visit.
@@ -89,39 +103,74 @@ struct ContentView: View {
         route = .arcade
     }
 
-    private var titleScreen: some View {
-        ZStack {
-            LinearGradient(
-                colors: [Color(red: 0.09, green: 0.10, blue: 0.15), Color(red: 0.13, green: 0.11, blue: 0.22)],
-                startPoint: .top, endPoint: .bottom
-            )
-            .ignoresSafeArea()
-            VStack(spacing: 12) {
-                Text("Vimkin")
-                    .font(.system(size: 56, weight: .bold, design: .monospaced))
-                    .foregroundStyle(.white)
-                Text("learn vim. rescue the vimkins.")
-                    .font(.system(.title3, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.6))
-                HStack(spacing: 12) {
-                    Button("Adventure") { route = .play }
-                        .buttonStyle(.borderedProminent)
-                    Button("Learn") { route = .learn }
-                        .buttonStyle(.bordered)
-                    Button("Practice") { showDojo = true }
-                        .buttonStyle(.bordered)
-                    Button("Daily Run") { openArcade() }
-                        .buttonStyle(.bordered)
-                    Button("Progress") { route = .progress }
-                        .buttonStyle(.bordered)
-                    Button("Playground") { route = .playground }
-                        .buttonStyle(.bordered)
-                }
-                .font(.system(.body, design: .monospaced))
-                .padding(.top, 24)
+    // MARK: - Hub
+
+    /// The live numbers behind the hub's status lines, read fresh on each draw.
+    private var hubStatus: HubStatus {
+        let lessons = try? LessonDatabase.load()
+        let today = ArcadeDay.key(for: Date())
+        return HubStatus(
+            levelsCleared: levelResults.state.results.values.filter(\.completed).count,
+            levelCount: levelCount,
+            todaysScore: leaderboard.result(day: today)?.score,
+            lessonsLearned: store.state.completedLessons.count,
+            lessonCount: lessons?.lessons.count ?? 0,
+            skillsUnlocked: store.unlockedCommands.count,
+            practicedDays: store.practiceTrend().practicedDays,
+            windowDays: store.practiceTrend().windowDays,
+            documentCount: Corpus.documentNames.count
+        )
+    }
+
+    private var hub: some View {
+        let status = hubStatus
+        return HubView(status: status, selection: cursor.index) { verb in
+            if let index = Hub.entries(status).firstIndex(where: { $0.verb == verb }) {
+                cursor.select(index)
             }
+            open(verb: verb)
+        }
+        .keyboardSurface(
+            keyboard, map: SurfaceKeys.hub, isActive: !showDojo, onAction: handleHub
+        )
+        .task {
+            guard levelCount == 0 else { return }
+            levelCount = (try? LevelDatabase.loadWorld1())?.levels.count ?? 0
         }
     }
+
+    private func handleHub(_ action: NavAction) {
+        if cursor.apply(action) { return }
+        switch action {
+        case .activate:
+            let entries = Hub.entries(hubStatus)
+            guard entries.indices.contains(cursor.index) else { return }
+            open(verb: entries[cursor.index].verb)
+        case .verb(let verb):
+            if let index = Hub.entries(hubStatus).firstIndex(where: { $0.verb == verb }) {
+                cursor.select(index)
+            }
+            open(verb: verb)
+        default:
+            break
+        }
+    }
+
+    /// The single place a hub verb turns into a route. `HubView`'s click path
+    /// and the keyboard path both land here, so they can never diverge.
+    private func open(verb: String) {
+        switch verb {
+        case Hub.Verb.adventure: route = .play
+        case Hub.Verb.lessons: route = .learn
+        case Hub.Verb.practice: showDojo = true
+        case Hub.Verb.daily: openArcade()
+        case Hub.Verb.progress: route = .progress
+        case Hub.Verb.playground: route = .playground
+        case Hub.Verb.quit: NSApplication.shared.terminate(nil)
+        default: break
+        }
+    }
+
 }
 
 /// Temporary dev surface (U4 glue): the editor on a corpus document.
@@ -132,25 +181,46 @@ struct PlaygroundView: View {
     @State private var documents: [CorpusDocument] = []
     @State private var selectedName = Corpus.documentNames[0]
     @State private var session: EditorSession?
+    /// The playground is a pure ENGINE surface: the editor is always live, so
+    /// every plain key is the engine's. Switching documents and leaving ride on
+    /// ⌘, which `KeyCaptureView.translate` drops before the engine sees it.
+    @State private var keyboard = KeyboardSurfaceModel()
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack {
-                Button("← Title") { onBack() }
+            HStack(spacing: 12) {
+                Button("← Hub") { onBack() }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(HubTheme.paper.opacity(0.7))
+                    .keyboardShortcut("l", modifiers: .command)
                 Picker("Document", selection: $selectedName) {
                     ForEach(documents) { doc in
                         Text(doc.name).tag(doc.name)
                     }
                 }
                 .frame(maxWidth: 320)
+                HStack(spacing: 6) {
+                    Keycap(label: "⌘J")
+                    Keycap(label: "⌘K")
+                    Text("switch document")
+                        .font(.system(size: 11, design: .monospaced))
+                        .foregroundStyle(HubTheme.paper.opacity(0.4))
+                }
                 Spacer()
             }
             .padding(10)
             .background(Color(red: 0.07, green: 0.08, blue: 0.12))
 
             if let session {
-                EditorView(session: session)
-                    .id(selectedName)
+                EditorView(
+                    session: session,
+                    filter: keyboard.engineFilter(
+                        mode: { .engine },
+                        map: { SurfaceKeys.playground },
+                        onAction: handle
+                    )
+                )
+                .id(selectedName)
             } else {
                 Text("corpus failed to load")
                     .font(.system(.body, design: .monospaced))
@@ -162,6 +232,34 @@ struct PlaygroundView: View {
             openSelected()
         }
         .onChange(of: selectedName) { openSelected() }
+        .keyboardSurface(
+            keyboard, map: SurfaceKeys.playground, mode: .engine,
+            hasInnerCapture: session != nil, onAction: handle
+        )
+    }
+
+    // MARK: - Keyboard
+
+    private func handle(_ action: NavAction) {
+        switch action {
+        case .back:
+            onBack()
+        case .verb("nextDoc"):
+            step(by: 1)
+        case .verb("prevDoc"):
+            step(by: -1)
+        default:
+            break
+        }
+    }
+
+    /// Walk the corpus without leaving the home row. Clamps rather than wraps,
+    /// the same rule `ListCursor` uses everywhere else in the app.
+    private func step(by delta: Int) {
+        let names = documents.isEmpty ? Corpus.documentNames : documents.map(\.name)
+        guard let current = names.firstIndex(of: selectedName) else { return }
+        let next = min(max(current + delta, 0), names.count - 1)
+        selectedName = names[next]
     }
 
     private func openSelected() {

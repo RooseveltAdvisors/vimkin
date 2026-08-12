@@ -21,6 +21,9 @@ public struct MasteryMapView: View {
 
     /// Bumped after a practice hand-off so the map re-reads the store.
     @State private var revision = 0
+    /// Keyboard shell (U15): every skill row is one stop on a j/k list.
+    @State private var keyboard = KeyboardSurfaceModel()
+    @State private var cursor = ListCursor(count: 0)
 
     public init(
         store: ProgressStore,
@@ -37,8 +40,16 @@ public struct MasteryMapView: View {
         return MasteryMap.build(database: database, store: store)
     }
 
+    /// The rows the cursor walks, in the order they are drawn: the "worth a
+    /// pass" panel first, then every tier. Built from the same `MasteryMap` the
+    /// body renders, so the highlight can never point at a different row.
+    private func navigableRows(_ map: MasteryMap) -> [MasterySkill] {
+        map.rustySkills + map.tiers.flatMap { $0.isUntouched ? [] : $0.skills }
+    }
+
     public var body: some View {
         let map = self.map
+        let rows = navigableRows(map)
         return ZStack {
             LinearGradient(
                 colors: [DojoTheme.background, DojoTheme.plum],
@@ -63,6 +74,36 @@ public struct MasteryMapView: View {
                 .frame(maxWidth: .infinity)
             }
         }
+        .keyboardSurface(keyboard, map: SurfaceKeys.mastery) { action in
+            handle(action, rows: rows)
+        }
+        .onAppear { cursor.setCount(rows.count) }
+        .onChange(of: rows.count) { _, count in cursor.setCount(count) }
+    }
+
+    // MARK: - Keyboard
+
+    private func handle(_ action: NavAction, rows: [MasterySkill]) {
+        if cursor.apply(action) { return }
+        switch action {
+        case .activate:
+            guard rows.indices.contains(cursor.index) else { return }
+            practice(rows[cursor.index])
+        case .back:
+            onClose()
+        default:
+            break
+        }
+    }
+
+    /// Row index within `navigableRows`, or nil when the row is not navigable.
+    private func rowIndex(_ skill: MasterySkill, prominent: Bool) -> Int? {
+        let rows = navigableRows(self.map)
+        // A rusty skill appears twice — once in the "worth a pass" panel and
+        // once in its tier. `prominent` disambiguates which copy is being drawn.
+        if prominent { return rows.firstIndex { $0.id == skill.id } }
+        guard let last = rows.lastIndex(where: { $0.id == skill.id }) else { return nil }
+        return last
     }
 
     // MARK: - Chrome
@@ -74,6 +115,7 @@ public struct MasteryMapView: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(DojoTheme.paper.opacity(0.7))
+            .keyboardShortcut("l", modifiers: .command)
 
             Text("Progress")
                 .font(.system(.headline, design: .monospaced))
@@ -228,6 +270,7 @@ public struct MasteryMapView: View {
     /// dojo session via the same notification the lookup overlay posts.
     private func skillRow(_ skill: MasterySkill, prominent: Bool) -> some View {
         let tint = ArcadeTheme.stateTint(skill.state)
+        let selected = rowIndex(skill, prominent: prominent) == cursor.index
         return Button {
             practice(skill)
         } label: {
@@ -261,6 +304,7 @@ public struct MasteryMapView: View {
                 in: RoundedRectangle(cornerRadius: 8)
             )
             .contentShape(Rectangle())
+            .navSelected(selected, radius: 8)
         }
         .buttonStyle(.plain)
         .help("Practise \(skill.commandKeys) in the dojo")

@@ -181,12 +181,23 @@ struct SessionSummaryView: View {
 
     private var controls: some View {
         HStack(spacing: 14) {
-            Button("Practice again") { onPracticeAgain() }
-                .buttonStyle(.borderedProminent)
-                .tint(DojoTheme.cyan)
-            Button("Done") { onDone() }
-                .buttonStyle(.plain)
-                .foregroundStyle(DojoTheme.paper.opacity(0.65))
+            Button { onPracticeAgain() } label: {
+                HStack(spacing: 8) {
+                    Text("Practice again")
+                    Keycap(label: "⏎")
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(DojoTheme.cyan)
+
+            Button { onDone() } label: {
+                HStack(spacing: 8) {
+                    Text("Done")
+                    Keycap(label: "Esc")
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(DojoTheme.paper.opacity(0.65))
         }
         .font(DojoTheme.mono)
         .padding(.top, 6)

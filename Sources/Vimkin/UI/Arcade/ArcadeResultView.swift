@@ -206,17 +206,32 @@ struct ArcadeResultView: View {
     private var controls: some View {
         HStack(spacing: 14) {
             if canPlayScoredRun {
-                Button("Start today's run") { onPlayScored() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(ArcadeTheme.amber)
+                Button { onPlayScored() } label: {
+                    HStack(spacing: 8) {
+                        Text("Start today's run")
+                        Keycap(label: "⏎")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(ArcadeTheme.amber)
             } else {
-                Button("Practise again") { onPractice() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(ArcadeTheme.cyan)
+                Button { onPractice() } label: {
+                    HStack(spacing: 8) {
+                        Text("Practise again")
+                        Keycap(label: "p")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(ArcadeTheme.cyan)
             }
-            Button("Done") { onDone() }
-                .buttonStyle(.plain)
-                .foregroundStyle(ArcadeTheme.paper.opacity(0.65))
+            Button { onDone() } label: {
+                HStack(spacing: 8) {
+                    Text("Done")
+                    Keycap(label: "Esc")
+                }
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(ArcadeTheme.paper.opacity(0.65))
         }
         .font(ArcadeTheme.mono)
         .padding(.top, 6)

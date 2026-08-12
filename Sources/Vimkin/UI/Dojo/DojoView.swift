@@ -15,6 +15,9 @@ public struct DojoView: View {
     /// Command id handed over by the lookup overlay's "Practice this →".
     private let focusCommandID: String?
     private let onClose: () -> Void
+    /// Keyboard shell (U18). The dojo is a SHEET, so `Esc` getting back out of
+    /// it is the difference between a keyboard app and a focus trap.
+    @State private var keyboard = KeyboardSurfaceModel()
 
     public init(
         focusCommandID: String? = nil,
@@ -46,18 +49,64 @@ public struct DojoView: View {
                 model.startFocusedSession(commandID: focusCommandID)
             }
         }
+        .keyboardSurface(
+            keyboard, map: map, mode: mode,
+            hasInnerCapture: model.phase == .drilling, onAction: navigate
+        )
+    }
+
+    // MARK: - Keyboard
+
+    /// Only the drill itself is the engine's; the start card and the summary
+    /// either side of it are ordinary menus.
+    private var mode: InputMode { model.phase == .drilling ? .engine : .navigation }
+
+    private var map: KeyMap {
+        switch model.phase {
+        case .idle: return SurfaceKeys.dojoIdle
+        case .drilling: return SurfaceKeys.dojoDrilling
+        case .summary: return SurfaceKeys.dojoSummary
+        }
+    }
+
+    private func navigate(_ action: NavAction) {
+        switch action {
+        case .verb("start"):
+            guard !model.generator.eligibleCommandIDs.isEmpty else { return }
+            model.startSession()
+        case .verb("reset"):
+            model.restartDrill()
+        case .verb("skip"):
+            model.skipDrill()
+        case .verb("finish"):
+            model.finishEarly()
+        case .verb("again"):
+            model.startSession()
+        case .verb("done"), .back:
+            model.reset()
+            onClose()
+        default:
+            break
+        }
     }
 
     // MARK: - Chrome
 
     private var header: some View {
         HStack(spacing: 12) {
-            Button(action: onClose) {
-                Label("Close", systemImage: "chevron.left")
-                    .labelStyle(.titleAndIcon)
+            Button {
+                model.reset()
+                onClose()
+            } label: {
+                HStack(spacing: 6) {
+                    Label("Close", systemImage: "chevron.left")
+                        .labelStyle(.titleAndIcon)
+                    Keycap(label: model.phase == .drilling ? "⌘L" : "Esc")
+                }
             }
             .buttonStyle(.plain)
             .foregroundStyle(DojoTheme.paper.opacity(0.7))
+            .keyboardShortcut("l", modifiers: .command)
 
             Text("Practice Dojo")
                 .font(.system(.headline, design: .monospaced))
@@ -129,10 +178,15 @@ public struct DojoView: View {
                             .foregroundStyle(DojoTheme.paper.opacity(0.65))
                     }
                 }
-                Button("Start a set") { model.startSession() }
-                    .buttonStyle(.borderedProminent)
-                    .tint(DojoTheme.cyan)
+                Button { model.startSession() } label: {
+                    HStack(spacing: 8) {
+                        Text("Start a set")
+                        Keycap(label: "⏎")
+                    }
                     .font(DojoTheme.mono)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(DojoTheme.cyan)
             }
             Spacer()
         }
@@ -149,7 +203,16 @@ public struct DojoView: View {
                 instructionBar(drill)
                 progressDots(session)
 
-                EditorView(session: editor)
+                EditorView(
+                    session: editor,
+                    // The chrome routes first, so `Esc Esc` leaves the set; in
+                    // engine mode every key falls through to the drill.
+                    filter: keyboard.engineFilter(
+                        mode: { .engine },
+                        map: { SurfaceKeys.dojoDrilling },
+                        onAction: navigate
+                    )
+                )
                     .id(model.editorGeneration)
                     .frame(minHeight: 320)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -231,15 +294,33 @@ public struct DojoView: View {
         .animation(.easeOut(duration: 0.2), value: model.feedback)
     }
 
+    /// Every control here is ⌘-keyed rather than plain-keyed, and that is
+    /// forced by the mode rule, not a preference: while a drill is running the
+    /// engine owns every ordinary key, so a bare `r` must reach the buffer.
+    /// ⌘ combos never reach the engine, which makes them the one safe channel
+    /// for chrome mid-drill.
     private var footerControls: some View {
         HStack(spacing: 14) {
-            Button("Reset this document") { model.restartDrill() }
-            Button("Skip") { model.skipDrill() }
+            drillControl("Reset this document", "⌘R", "r") { model.restartDrill() }
+            drillControl("Skip", "⌘J", "j") { model.skipDrill() }
             Spacer()
-            Button("Finish set") { model.finishEarly() }
+            drillControl("Finish set", "⌘E", "e") { model.finishEarly() }
         }
-        .buttonStyle(.plain)
         .font(.system(.callout, design: .monospaced))
         .foregroundStyle(DojoTheme.paper.opacity(0.6))
+    }
+
+    private func drillControl(
+        _ title: String, _ cap: String, _ shortcut: KeyEquivalent,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Text(title)
+                Keycap(label: cap)
+            }
+        }
+        .buttonStyle(.plain)
+        .keyboardShortcut(shortcut, modifiers: .command)
     }
 }
