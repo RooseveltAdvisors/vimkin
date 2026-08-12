@@ -165,9 +165,11 @@ public final class GameScene: SKScene {
             let marker = SKShapeNode(
                 circleOfRadius: CGFloat(geometry.layout.cellSize.height) * 0.85
             )
-            marker.strokeColor = GameTheme.nsColor(GameTheme.vimkinAmber.opacity(0.35))
-            marker.lineWidth = 1
-            marker.fillColor = .clear
+            // A soft lantern-glow, not a targeting reticle: it must help you
+            // spot a Vimkin in dense prose without competing with the art.
+            marker.strokeColor = .clear
+            marker.lineWidth = 0
+            marker.fillColor = GameTheme.nsColor(GameTheme.vimkinAmber.opacity(0.13))
             marker.zPosition = 2
             marker.name = vimkin.id
             marker.run(.repeatForever(.sequence([
@@ -289,6 +291,17 @@ final class VimkinNode: SKNode {
     private let body: SKShapeNode
     private let belly: SKShapeNode
     private let tuft: SKShapeNode
+    /// The drawn creature, when its art is in the bundle. When absent the
+    /// programmatic shapes above stand in, so the game never depends on art
+    /// having been generated.
+    private var sprite: SKSpriteNode?
+    private static let spriteCache = SpriteCache()
+
+    /// Loads a cut-out character PNG from `Content/sprites/`, or nil if the art
+    /// was never generated for this build.
+    private static func texture(named name: String) -> SKTexture? {
+        spriteCache.texture(named: name)
+    }
 
     init(cellSize: LayoutSize) {
         let radius = CGFloat(cellSize.height) * 0.42
@@ -317,6 +330,21 @@ final class VimkinNode: SKNode {
         addChild(belly)
         addChild(tuft)
 
+        if let texture = Self.texture(named: "vimkin-base-trapped") {
+            let node = SKSpriteNode(texture: texture)
+            // Bigger than one cell on purpose — the creature should read as a
+            // character standing in the text, not as a glyph.
+            let side = radius * 5.0
+            node.size = CGSize(width: side, height: side)
+            node.zPosition = 1
+            addChild(node)
+            sprite = node
+            // The shapes are the fallback silhouette; hide them behind real art.
+            body.isHidden = true
+            belly.isHidden = true
+            tuft.isHidden = true
+        }
+
         run(.repeatForever(.sequence([
             .moveBy(x: 0, y: 1.6, duration: 1.3),
             .moveBy(x: 0, y: -1.6, duration: 1.3),
@@ -333,6 +361,10 @@ final class VimkinNode: SKNode {
         body.strokeColor = GameTheme.nsColor(
             (rescued ? GameTheme.vimkinAmber : GameTheme.parchment).opacity(0.85)
         )
+        if let sprite,
+           let texture = Self.texture(named: rescued ? "vimkin-base-rescued" : "vimkin-base-trapped") {
+            sprite.texture = texture
+        }
     }
 
     /// The rescue beat: the lantern flares and the creature hops.
