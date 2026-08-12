@@ -6,20 +6,30 @@ teaches: mixing words and edges in one breath
 intro: Nobody rescues anybody with one key. Chain them. A word, an edge, a letter you can see - that is a crossing.
 allowed: [motion.left, motion.down, motion.up, motion.right, motion.word-forward, motion.word-back, motion.word-end, motion.line-start, motion.first-char, motion.line-end, motion.file-top, motion.file-bottom, motion.find-forward, motion.find-back, motion.till-forward, motion.till-back, motion.repeat-find, motion.repeat-find-reverse]
 par: 20
-solution: jj$jwwejj$b
+solution: jj$jjbjjjj^Gkkk$b
 vimkins:
-  - { name: Halyard, line: 2, col: 46, rescue: reach }
-  - { name: Peat, line: 4, col: 5, rescue: reach }
-  - { name: Skerry, line: 6, col: 46, rescue: reach, cheer: Skerry was one word back from the edge. }
+  - { name: Halyard, line: 2, col: 39, rescue: reach, cheer: Halyard was clinging to the far edge of the tide line. }
+  - { name: Peat, line: 4, col: 22, rescue: reach }
+  - { name: Marram, line: 8, col: 2, rescue: reach, cheer: Marram stands on the first honest letter of the path. }
+  - { name: Skerry, line: 16, col: 27, rescue: reach, cheer: Skerry was one word back from the edge. }
 ---
-# Trail notes - the crossing at low water
+# trail notes - the crossing at low water
 
-The sand road only exists for four hours a day.
-Walk out at half past eight and keep left of the poles.
-Do not trust a dry patch. Trust the poles.
+the sand road only exists for four hours
+a day.
+walk out at half past eight
+and keep left of the poles.
 
-Halfway across there is a bench that makes no sense.
-Somebody carried a bench into the middle of the sea.
-I sat on it. It was the best twenty minutes of the year.
+# do not trust a dry patch
+  trust the poles
+  trust the poles again
 
-Come back before the water remembers the road.
+# the bench in the sea
+halfway across there is a bench
+that makes no sense at all
+somebody carried it out here
+I sat on it.
+best twenty minutes of the year
+
+come back before the water
+remembers the road.
