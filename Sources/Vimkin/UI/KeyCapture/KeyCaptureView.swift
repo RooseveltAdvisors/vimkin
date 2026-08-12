@@ -110,16 +110,44 @@ public struct KeyCaptureView<Content: View>: View {
         onKey: (KeyInput) -> Void,
         onBlocked: ((KeyInput, String) -> Void)? = nil
     ) -> KeyCaptureOutcome {
-        guard let input = translate(key: key, characters: characters, modifiers: modifiers) else {
-            return .ignored
+        let inputs = translateAll(key: key, characters: characters, modifiers: modifiers)
+        guard !inputs.isEmpty else { return .ignored }
+
+        var deliveredAny = false
+        var firstBlock: String?
+        for input in inputs {
+            switch filter(input) {
+            case .allow:
+                onKey(input)
+                deliveredAny = true
+            case .block(let reason):
+                onBlocked?(input, reason)
+                if firstBlock == nil { firstBlock = reason }
+            }
         }
-        switch filter(input) {
-        case .allow:
-            onKey(input)
-            return .delivered
-        case .block(let reason):
-            onBlocked?(input, reason)
-            return .blocked(reason: reason)
+        if deliveredAny { return .delivered }
+        return firstBlock.map { .blocked(reason: $0) } ?? .ignored
+    }
+
+    /// Every engine input carried by one key-press event.
+    ///
+    /// Usually one, but macOS coalesces a fast burst into a SINGLE press whose
+    /// `characters` holds every character typed. Returning only the first (or
+    /// worse, nothing) silently eats keys — fatal here, since typing fast is the
+    /// whole point of Vim. Verified against the running app 2026-08-11.
+    nonisolated public static func translateAll(
+        key: KeyEquivalent,
+        characters: String,
+        modifiers: EventModifiers
+    ) -> [KeyInput] {
+        if let single = translate(key: key, characters: characters, modifiers: modifiers) {
+            return [single]
+        }
+        // Cmd shortcuts belong to the system however many characters arrive.
+        if modifiers.contains(.command) { return [] }
+        guard characters.count > 1 else { return [] }
+        return characters.compactMap { char in
+            translate(key: key, characters: String(char), modifiers: modifiers)
         }
     }
 

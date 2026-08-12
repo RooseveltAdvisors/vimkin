@@ -100,4 +100,55 @@ struct KeyCaptureTests {
         #expect(second == .delivered)
         #expect(session.cursor == Position(line: 0, col: 1))
     }
+
+    /// macOS coalesces a fast burst of keystrokes into ONE key-press event whose
+    /// `characters` carries every character typed. Dropping those is fatal for a
+    /// Vim game — typing fast is the entire point — so a burst must expand into
+    /// one engine input per character, in order.
+    @Test func aCoalescedBurstDeliversEveryKeyInOrder() {
+        var delivered: [KeyInput] = []
+        let outcome = Capture.process(
+            key: "j", characters: "jjl", modifiers: [],
+            filter: { _ in .allow }, onKey: { delivered.append($0) }
+        )
+        #expect(outcome == .delivered)
+        #expect(delivered == [.char("j"), .char("j"), .char("l")])
+    }
+
+    @Test func aCoalescedBurstMovesTheCursorOncePerKey() {
+        let session = EditorSession(text: "hello world")
+        _ = Capture.process(
+            key: "l", characters: "lll", modifiers: [],
+            filter: { _ in .allow }, onKey: { session.feed($0) }
+        )
+        #expect(session.cursor == Position(line: 0, col: 3))
+    }
+
+    @Test func theFilterStillGatesEveryKeyInABurst() {
+        var delivered: [KeyInput] = []
+        var blocked: [KeyInput] = []
+        let outcome = Capture.process(
+            key: "d", characters: "dxd", modifiers: [],
+            filter: { $0 == .char("x") ? .block(reason: "locked") : .allow },
+            onKey: { delivered.append($0) },
+            onBlocked: { key, _ in blocked.append(key) }
+        )
+        // A burst containing a locked key still delivers the legal ones and
+        // reports the block rather than swallowing the whole burst.
+        #expect(delivered == [.char("d"), .char("d")])
+        #expect(blocked == [.char("x")])
+        #expect(outcome == .delivered)
+    }
+
+    @Test func aBurstOfSystemKeysIsStillIgnored() {
+        var delivered: [KeyInput] = []
+        // Arrow/function keys (U+F700 block) never belong to the engine, even
+        // when several arrive together.
+        let outcome = Capture.process(
+            key: "a", characters: "\u{F700}\u{F701}", modifiers: [],
+            filter: { _ in .allow }, onKey: { delivered.append($0) }
+        )
+        #expect(outcome == .ignored)
+        #expect(delivered.isEmpty)
+    }
 }
