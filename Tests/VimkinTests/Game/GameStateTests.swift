@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Game: state, goals, par and the engine sync invariant")
+@Suite("Game: state, goals, par and the engine sync invariant", .tags(.integration))
 struct GameStateTests {
 
     // MARK: - Locked keys provably do nothing

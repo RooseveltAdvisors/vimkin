@@ -4,7 +4,7 @@ import Testing
 
 /// Tests the pure translate/filter pipeline of KeyCaptureView — no SwiftUI
 /// focus simulation (per plan: rendering/focus verified visually).
-@Suite("KeyCapture: translation + lock-filter pipeline")
+@Suite("KeyCapture: translation + lock-filter pipeline", .tags(.acceptance))
 struct KeyCaptureTests {
     typealias Capture = KeyCaptureView<EmptyView>
 

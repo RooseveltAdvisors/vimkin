@@ -9,7 +9,7 @@ private func makeStore() -> ProgressStore {
     ProgressStore(directory: temporaryDirectory(), alternateDirectories: [])
 }
 
-@Suite("Tutorial path progression")
+@Suite("Tutorial path progression", .tags(.integration))
 struct TutorialProgressTests {
 
     @Test("only the first lesson is open on a fresh profile")

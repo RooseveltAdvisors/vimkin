@@ -6,7 +6,7 @@ import Testing
 // These are the cheap tests; the expensive proof that the content actually
 // WORKS lives in LessonCompletabilityTests.
 
-@Suite("Lesson database schema")
+@Suite("Lesson database schema", .tags(.integration))
 struct LessonDatabaseSchemaTests {
 
     private func loadLessons() throws -> LessonDatabase { try LessonDatabase.load() }

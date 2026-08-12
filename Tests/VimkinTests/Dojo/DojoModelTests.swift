@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Dojo: model orchestration and the \"Practice this →\" hand-off")
+@Suite("Dojo: model orchestration and the \"Practice this →\" hand-off", .tags(.acceptance))
 @MainActor
 struct DojoModelTests {
 

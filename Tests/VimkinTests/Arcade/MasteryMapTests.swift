@@ -3,7 +3,7 @@ import Testing
 
 @testable import Vimkin
 
-@Suite("Mastery map: where do I stand")
+@Suite("Mastery map: where do I stand", .tags(.integration))
 struct MasteryMapTests {
 
     /// A store seeded into a known standing, on a known day:

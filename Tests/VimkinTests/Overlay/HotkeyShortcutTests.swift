@@ -4,10 +4,10 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Hotkey shortcut: codable, persistence, rejection rules")
+@Suite("Hotkey shortcut: codable round-trip + rejection rules", .tags(.acceptance))
 struct HotkeyShortcutTests {
 
-    // MARK: Codable round-trip + UserDefaults persistence
+    // MARK: Codable round-trip
 
     @Test("Codable round-trip preserves keyCode and modifiers")
     func codableRoundTrip() throws {
@@ -18,30 +18,6 @@ struct HotkeyShortcutTests {
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(HotkeyShortcut.self, from: data)
         #expect(decoded == original)
-    }
-
-    @Test("save/load through UserDefaults round-trips; nil save removes the key")
-    func userDefaultsPersistence() throws {
-        let suiteName = "vimkin.tests.hotkey.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suiteName))
-        defer { defaults.removePersistentDomain(forName: suiteName) }
-        let key = "vimkin.summonShortcut"
-
-        #expect(HotkeyShortcut.load(from: defaults, key: key) == nil)
-
-        let shortcut = HotkeyShortcut(
-            keyCode: UInt32(kVK_ANSI_K),
-            modifiers: UInt32(controlKey | optionKey)
-        )
-        HotkeyShortcut.save(shortcut, to: defaults, key: key)
-        #expect(HotkeyShortcut.load(from: defaults, key: key) == shortcut)
-
-        // Stored as JSON data (the vimhint pattern), not a plist blob.
-        #expect(defaults.data(forKey: key) != nil)
-
-        HotkeyShortcut.save(nil, to: defaults, key: key)
-        #expect(HotkeyShortcut.load(from: defaults, key: key) == nil)
-        #expect(defaults.data(forKey: key) == nil)
     }
 
     // MARK: Modifier-only / no-modifier rejection

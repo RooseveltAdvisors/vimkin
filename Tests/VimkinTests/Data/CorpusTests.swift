@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Corpus loading")
+@Suite("Corpus loading", .tags(.integration))
 struct CorpusTests {
 
     @Test("all six corpus documents load and are non-empty")

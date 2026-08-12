@@ -29,7 +29,7 @@ private func makeStore() -> ProgressStore {
     ProgressStore(directory: temporaryDirectory(), alternateDirectories: [])
 }
 
-@Suite("Authored lessons are completable on a real engine")
+@Suite("Authored lessons are completable on a real engine", .tags(.integration))
 struct LessonCompletabilityTests {
 
     @Test("every lesson reaches .lessonComplete by replaying its canonical keys")

@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Dojo: success predicate + near-miss classification")
+@Suite("Dojo: success predicate + near-miss classification", .tags(.integration))
 struct DrillJudgementTests {
 
     private func focusedDrills(_ commandID: String, seed: UInt64 = 5, length: Int = 4) throws -> [Drill] {

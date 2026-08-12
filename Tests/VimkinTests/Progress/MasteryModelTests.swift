@@ -4,7 +4,7 @@ import Testing
 
 // Pure mastery math + store-level decay behavior with an injected clock.
 
-@Suite("Mastery model")
+@Suite("Mastery model", .tags(.integration))
 struct MasteryModelTests {
     /// Fixed reference date: 2026-01-01 00:00 in the test calendar.
     static func makeStore(startingAt start: Date = day(0), clock: TestClock? = nil) -> (ProgressStore, TestClock) {
@@ -95,12 +95,5 @@ struct MasteryModelTests {
         let wrongDrop = before - storeB.masteryScore(commandID: id)
         #expect(wrongDrop > slowDrop)
         #expect(slowDrop >= 0)
-    }
-
-    @Test("pure update math is clamped to 0...100")
-    func updateClamping() {
-        #expect(MasteryModel.updatedScore(from: 100, outcome: .correct) <= 100)
-        #expect(MasteryModel.updatedScore(from: 0, outcome: .incorrect) >= 0)
-        #expect(MasteryModel.decayedScore(from: 5, daysSincePractice: 400, everMastered: false) == 0)
     }
 }

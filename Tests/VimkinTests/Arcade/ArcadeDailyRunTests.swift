@@ -3,7 +3,7 @@ import Testing
 
 @testable import Vimkin
 
-@Suite("Arcade: one run per day, and it never touches the mastery store")
+@Suite("Arcade: one run per day, and it never touches the mastery store", .tags(.integration))
 @MainActor
 struct ArcadeDailyRunTests {
 

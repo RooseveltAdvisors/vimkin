@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Game: the skill gate")
+@Suite("Game: the skill gate", .tags(.integration))
 struct LockFilterTests {
 
     private func filter(

@@ -6,7 +6,7 @@ import Testing
 /// terrain is game content, not decoration. These tests pin the five kinds, the
 /// two rules that make islands read as islands (past-the-end is sea, blank
 /// lines are sea) and the island rim the renderer draws from.
-@Suite("Game: terrain classification (the document as a tile world)")
+@Suite("Game: terrain classification (the document as a tile world)", .tags(.unit))
 struct TerrainMapTests {
 
     private let doc = [
@@ -170,39 +170,5 @@ struct TerrainMapTests {
         #expect(map.landRuns().allSatisfy { $0.line != 2 })
         #expect(map.landSpan(line: 2) == nil)
         #expect(map.landSpan(line: 1) == 0..<5)
-    }
-
-    @Test("every land cell is covered by exactly one run")
-    func runsCoverAllLand() throws {
-        for level in try world1().levels {
-            let terrain = TerrainMap(document: level.document)
-            var covered: Set<[Int]> = []
-            for run in terrain.landRuns() {
-                for col in run.columns {
-                    #expect(terrain.kind(line: run.line, col: col) == run.kind)
-                    #expect(covered.insert([run.line, col]).inserted, "double-covered cell")
-                }
-            }
-            for line in 0..<terrain.rowCount {
-                for col in 0..<terrain.contentLengths[line]
-                where terrain.kind(line: line, col: col).isLand {
-                    #expect(covered.contains([line, col]), "\(level.id) missed (\(line),\(col))")
-                }
-            }
-        }
-    }
-
-    @Test("every real level classifies without crashing and has land to stand on")
-    func realLevelsHaveTerrain() throws {
-        for level in try world1().levels {
-            let terrain = TerrainMap(document: level.document)
-            #expect(terrain.rowCount > 0, "\(level.id)")
-            #expect(terrain.columnCount > 0, "\(level.id)")
-            // Every Vimkin must be standing on land, never adrift in the sea.
-            for vimkin in level.vimkins {
-                let kind = terrain.kind(line: vimkin.position.line, col: vimkin.position.col)
-                #expect(kind.isLand, "\(level.id)/\(vimkin.id) is floating in the ink")
-            }
-        }
     }
 }

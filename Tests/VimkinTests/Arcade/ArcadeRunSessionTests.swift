@@ -3,7 +3,7 @@ import Testing
 
 @testable import Vimkin
 
-@Suite("Arcade: running the gauntlet against the clock")
+@Suite("Arcade: running the gauntlet against the clock", .tags(.integration))
 struct ArcadeRunSessionTests {
 
     private func makeSession(

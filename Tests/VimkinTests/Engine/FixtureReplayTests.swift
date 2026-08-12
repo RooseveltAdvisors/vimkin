@@ -4,7 +4,7 @@ import Testing
 // Verification (plan U2): a scripted replay of a vimtutor-style edit sequence
 // produces a byte-identical buffer to the expected fixture.
 
-@Suite struct FixtureReplayTests {
+@Suite(.tags(.unit)) struct FixtureReplayTests {
     @Test func vimtutorStyleEditSession() {
         var engine = VimEngine(text: """
         # Notes

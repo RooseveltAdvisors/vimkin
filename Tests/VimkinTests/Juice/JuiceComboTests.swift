@@ -8,7 +8,7 @@
 import Testing
 @testable import Vimkin
 
-@Suite("Juice: combo tracker")
+@Suite("Juice: combo tracker", .tags(.unit))
 struct JuiceComboTests {
     private let grammar = CommandEvent(
         verb: .delete, modifier: .inside, target: .textObject(.word), category: .fullGrammar

@@ -1,7 +1,7 @@
 import Testing
 @testable import Vimkin
 
-@Suite("EditorSession: engine plumbing + event publishing")
+@Suite("EditorSession: engine plumbing + event publishing", .tags(.acceptance))
 struct EditorSessionTests {
     @Test func feedXInNormalModeMutatesBufferAndEmitsEvent() {
         let session = EditorSession(text: "hello")

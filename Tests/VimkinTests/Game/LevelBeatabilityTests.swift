@@ -9,7 +9,7 @@ import Testing
 /// only the commands the level itself hands out, and must end with every goal
 /// met. Nothing is mocked and nothing is stubbed: if this suite is green, the
 /// world is genuinely finishable.
-@Suite("Game: every World 1 level is beatable")
+@Suite("Game: every World 1 level is beatable", .tags(.integration))
 struct LevelBeatabilityTests {
 
     @Test("every level is completed by its canonical solution")

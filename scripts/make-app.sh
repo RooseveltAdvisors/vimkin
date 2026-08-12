@@ -8,7 +8,10 @@ BUILD_DIR="$REPO_ROOT/.build/release"
 OUT_DIR="${OUT_DIR:-$REPO_ROOT/dist}"
 APP="$OUT_DIR/Vimkin.app"
 
-swift build -c release --package-path "$REPO_ROOT"
+# SWIFT_BUILD_FLAGS lets the gate (scripts/gate.sh) build the release binary
+# with -warnings-as-errors without duplicating the bundling logic.
+# shellcheck disable=SC2086
+swift build -c release --package-path "$REPO_ROOT" ${SWIFT_BUILD_FLAGS:-}
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

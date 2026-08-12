@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import Vimkin
 
-@Suite("Dojo: adaptive drill generation")
+@Suite("Dojo: adaptive drill generation", .tags(.integration))
 struct DrillGeneratorTests {
 
     private static let unlocked = [

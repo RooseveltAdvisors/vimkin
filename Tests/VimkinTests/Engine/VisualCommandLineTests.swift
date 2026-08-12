@@ -3,7 +3,7 @@ import Testing
 
 // Batch 5a — visual charwise mode (v) and the minimal command line (:w :q :wq).
 
-@Suite struct VisualModeTests {
+@Suite(.tags(.unit)) struct VisualModeTests {
     @Test func vEntersVisualEscLeaves() {
         var engine = VimEngine(text: "hello")
         let enter = engine.feed("v")
@@ -95,7 +95,7 @@ import Testing
     }
 }
 
-@Suite struct CommandLineTests {
+@Suite(.tags(.unit)) struct CommandLineTests {
     @Test func colonEntersCommandLineMode() {
         var engine = VimEngine(text: "hi")
         engine.feed(":")
@@ -162,7 +162,7 @@ import Testing
     }
 }
 
-@Suite struct DeterminismTests {
+@Suite(.tags(.unit)) struct DeterminismTests {
     // Property: an identical key sequence on an identical buffer always yields an
     // identical engine state (buffer, cursor, mode, register, events).
     static let recordedSequences: [(text: String, keys: String)] = [
