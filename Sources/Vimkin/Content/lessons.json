@@ -1,0 +1,724 @@
+[
+  {
+    "id": "t1-modes",
+    "tier": 1,
+    "order": 1,
+    "title": "Normal is home",
+    "concept": "Vim starts in Normal mode, where the letters on your keyboard are commands, not text. `i` opens Insert mode so you can actually type. `Esc` always brings you home to Normal. Two doors, one room — that is the whole idea.",
+    "document": "# Trip notes\n\nReykjavik in March. Bring layers.",
+    "teaches": ["action.insert-before", "action.escape"],
+    "steps": [
+      {
+        "id": "t1-modes-insert",
+        "instruction": "Press `i` to open Insert mode.",
+        "targetCommandID": "action.insert-before",
+        "canonicalKeys": "i",
+        "success": { "verb": "enterInsert", "mode": "insert" },
+        "hint": "Just the letter `i` — it means \"insert here\"."
+      },
+      {
+        "id": "t1-modes-escape",
+        "instruction": "You are in Insert mode. Press `Esc` to come home to Normal.",
+        "targetCommandID": "action.escape",
+        "setupKeys": "i",
+        "canonicalKeys": "\u001b",
+        "success": { "verb": "leaveInsert", "mode": "normal" },
+        "hint": "`Esc` sits top-left. When you are not sure where you are, press it."
+      }
+    ]
+  },
+  {
+    "id": "t1-hjkl",
+    "tier": 1,
+    "order": 2,
+    "title": "Move without leaving home row",
+    "concept": "`h` `j` `k` `l` are your arrow keys, sitting under your right hand: `h` left, `j` down, `k` up, `l` right. Same four directions, no reach across the keyboard.",
+    "document": "- milk\n- bread\n- coffee beans",
+    "teaches": ["motion.left", "motion.down", "motion.up", "motion.right"],
+    "steps": [
+      {
+        "id": "t1-hjkl-down",
+        "instruction": "Move down one line with `j`.",
+        "targetCommandID": "motion.down",
+        "canonicalKeys": "j",
+        "success": { "verb": "move", "targetMotion": "down", "cursorLine": 1 },
+        "hint": "`j` points down — the letter even hangs below the line."
+      },
+      {
+        "id": "t1-hjkl-right",
+        "instruction": "Step one character to the right with `l`.",
+        "targetCommandID": "motion.right",
+        "setupKeys": "j",
+        "canonicalKeys": "l",
+        "success": { "verb": "move", "targetMotion": "right", "cursorCol": 1 },
+        "hint": "`l` is the rightmost of the four — so it moves right."
+      },
+      {
+        "id": "t1-hjkl-up",
+        "instruction": "Step back up a line with `k`.",
+        "targetCommandID": "motion.up",
+        "setupKeys": "jj",
+        "canonicalKeys": "k",
+        "success": { "verb": "move", "targetMotion": "up", "cursorLine": 1 },
+        "hint": "`k` kicks up. It is the neighbour just above `j`'s direction."
+      },
+      {
+        "id": "t1-hjkl-left",
+        "instruction": "Step one character to the left with `h`.",
+        "targetCommandID": "motion.left",
+        "setupKeys": "jll",
+        "canonicalKeys": "h",
+        "success": { "verb": "move", "targetMotion": "left", "cursorCol": 1 },
+        "hint": "`h` is the leftmost of the four — so it moves left."
+      }
+    ]
+  },
+  {
+    "id": "t1-insert-anywhere",
+    "tier": 1,
+    "order": 3,
+    "title": "Five doors into Insert",
+    "concept": "One idea, five doors. `a` appends after the cursor, `I` jumps to the first real character of the line, `A` to the end of it, `o` opens a fresh line below and `O` one above. Where you want to type decides which door you use.",
+    "document": "## Packing\n\n  sunscreen\n  passport",
+    "teaches": [
+      "action.insert-after",
+      "action.insert-line-start",
+      "action.insert-line-end",
+      "action.open-below",
+      "action.open-above"
+    ],
+    "steps": [
+      {
+        "id": "t1-insert-after",
+        "instruction": "Press `a` to start typing just AFTER the cursor.",
+        "targetCommandID": "action.insert-after",
+        "canonicalKeys": "a",
+        "requiredReps": 2,
+        "success": { "verb": "enterInsert", "mode": "insert", "cursorLine": 0, "cursorCol": 1 },
+        "hint": "`a` is for append. `i` would put you before the cursor instead."
+      },
+      {
+        "id": "t1-insert-line-start",
+        "instruction": "Press `I` to jump to the first real character of this indented line and type there.",
+        "targetCommandID": "action.insert-line-start",
+        "setupKeys": "jj",
+        "canonicalKeys": "I",
+        "requiredReps": 2,
+        "success": { "verb": "enterInsert", "mode": "insert", "cursorLine": 2, "cursorCol": 2 },
+        "hint": "Capital `I` — hold Shift. It skips the indent and lands on the `s`."
+      },
+      {
+        "id": "t1-insert-line-end",
+        "instruction": "Press `A` to jump to the end of this line and type there.",
+        "targetCommandID": "action.insert-line-end",
+        "canonicalKeys": "A",
+        "requiredReps": 2,
+        "success": { "verb": "enterInsert", "mode": "insert", "cursorLine": 0, "cursorCol": 10 },
+        "hint": "Capital `A` — hold Shift. It is append, but all the way to the end."
+      },
+      {
+        "id": "t1-insert-open-below",
+        "instruction": "Press `o` to open a brand new line below this one.",
+        "targetCommandID": "action.open-below",
+        "setupKeys": "jj",
+        "canonicalKeys": "o",
+        "requiredReps": 2,
+        "success": {
+          "verb": "enterInsert", "mode": "insert",
+          "cursorLine": 3, "cursorCol": 0, "bufferChanged": true
+        },
+        "hint": "Lowercase `o` opens the new line underneath and drops you on it."
+      },
+      {
+        "id": "t1-insert-open-above",
+        "instruction": "Press `O` to open a new line ABOVE this one.",
+        "targetCommandID": "action.open-above",
+        "setupKeys": "jj",
+        "canonicalKeys": "O",
+        "requiredReps": 2,
+        "success": {
+          "verb": "enterInsert", "mode": "insert",
+          "cursorLine": 2, "cursorCol": 0, "bufferChanged": true
+        },
+        "hint": "Capital `O` — hold Shift. Same door as `o`, opening upward."
+      }
+    ]
+  },
+  {
+    "id": "t1-save-quit",
+    "tier": 1,
+    "order": 4,
+    "title": "How to leave",
+    "concept": "`:` opens a command line at the bottom of the screen. `:w` writes the file, `:q` quits, and `:wq` does both. Press Return to run it. Nobody is ever trapped in Vim again.",
+    "document": "# Draft post\n\nNothing here is real yet.",
+    "teaches": ["cmd.write", "cmd.quit", "cmd.write-quit"],
+    "steps": [
+      {
+        "id": "t1-save-write",
+        "instruction": "Save the file: type `:w` and press Return.",
+        "targetCommandID": "cmd.write",
+        "canonicalKeys": ":w\n",
+        "success": { "verb": "write", "category": "commandLine" },
+        "hint": "Colon first, then `w` for write, then Return to run it."
+      },
+      {
+        "id": "t1-save-quit",
+        "instruction": "Quit: type `:q` and press Return.",
+        "targetCommandID": "cmd.quit",
+        "canonicalKeys": ":q\n",
+        "success": { "verb": "quit", "category": "commandLine" },
+        "hint": "`q` is quit. `Esc` backs out of the `:` prompt if you change your mind."
+      },
+      {
+        "id": "t1-save-write-quit",
+        "instruction": "Do both at once: type `:wq` and press Return.",
+        "targetCommandID": "cmd.write-quit",
+        "canonicalKeys": ":wq\n",
+        "success": { "verb": "writeQuit", "category": "commandLine" },
+        "hint": "`:wq` is just `w` and `q` said together — write, then quit."
+      }
+    ]
+  },
+  {
+    "id": "t2-words",
+    "tier": 2,
+    "order": 1,
+    "title": "Move by words, not letters",
+    "concept": "A word is a noun Vim understands. `w` jumps to the start of the next word, `b` back to the start of the previous one, `e` to the end of the one you are on. This is the first real speed-up: stop pressing `l` forty times.",
+    "document": "# Meeting notes\n\nShip the beta before Friday.",
+    "teaches": ["motion.word-forward", "motion.word-back", "motion.word-end"],
+    "steps": [
+      {
+        "id": "t2-words-forward",
+        "instruction": "Jump forward one word with `w`.",
+        "targetCommandID": "motion.word-forward",
+        "setupKeys": "jj",
+        "canonicalKeys": "w",
+        "success": { "verb": "move", "targetMotion": "wordForward", "cursorLine": 2, "cursorCol": 5 },
+        "hint": "`w` is for word. It lands on the FIRST letter of the next one."
+      },
+      {
+        "id": "t2-words-back",
+        "instruction": "Jump back one word with `b`.",
+        "targetCommandID": "motion.word-back",
+        "setupKeys": "jjww",
+        "canonicalKeys": "b",
+        "success": { "verb": "move", "targetMotion": "wordBackward", "cursorCol": 5 },
+        "hint": "`b` is for back — the mirror image of `w`."
+      },
+      {
+        "id": "t2-words-end",
+        "instruction": "Jump to the END of this word with `e`.",
+        "targetCommandID": "motion.word-end",
+        "setupKeys": "jj",
+        "canonicalKeys": "e",
+        "success": { "verb": "move", "targetMotion": "wordEnd", "cursorCol": 3 },
+        "hint": "`e` is for end. `w` goes to the next word's start; `e` stops on this word's last letter."
+      }
+    ]
+  },
+  {
+    "id": "t2-anchors",
+    "tier": 2,
+    "order": 2,
+    "title": "Anchors: line ends and file ends",
+    "concept": "Five anchors you will use forever: `0` the very start of a line, `^` its first real character, `$` its end, `gg` the top of the file and `G` the bottom. Big jumps, one keystroke.",
+    "document": "# Reading list\n\n  Sea of Tranquility\n  The Overstory\n  Piranesi",
+    "teaches": [
+      "motion.line-start",
+      "motion.first-char",
+      "motion.line-end",
+      "motion.file-top",
+      "motion.file-bottom"
+    ],
+    "steps": [
+      {
+        "id": "t2-anchors-line-end",
+        "instruction": "Jump to the end of this line with `$`.",
+        "targetCommandID": "motion.line-end",
+        "setupKeys": "jj",
+        "canonicalKeys": "$",
+        "requiredReps": 2,
+        "success": { "verb": "move", "targetMotion": "lineEnd", "charUnderCursor": "y" },
+        "hint": "`$` means \"end of line\" — the same `$` you may know from search boxes."
+      },
+      {
+        "id": "t2-anchors-line-start",
+        "instruction": "Jump back to column zero with `0`.",
+        "targetCommandID": "motion.line-start",
+        "setupKeys": "jj$",
+        "canonicalKeys": "0",
+        "requiredReps": 2,
+        "success": { "verb": "move", "targetMotion": "lineStart", "cursorCol": 0 },
+        "hint": "`0` is the number zero — the zeroth column, indentation included."
+      },
+      {
+        "id": "t2-anchors-first-char",
+        "instruction": "Now use `^` to land on the first real character instead, skipping the indent.",
+        "targetCommandID": "motion.first-char",
+        "setupKeys": "jj$",
+        "canonicalKeys": "^",
+        "requiredReps": 2,
+        "success": { "verb": "move", "targetMotion": "firstNonBlank", "cursorCol": 2, "charUnderCursor": "S" },
+        "hint": "`^` (Shift-6) skips leading spaces; `0` does not."
+      },
+      {
+        "id": "t2-anchors-file-top",
+        "instruction": "Jump to the top of the file with `gg`.",
+        "targetCommandID": "motion.file-top",
+        "setupKeys": "jjj",
+        "canonicalKeys": "gg",
+        "requiredReps": 2,
+        "success": { "verb": "move", "targetMotion": "fileStart", "cursorLine": 0 },
+        "hint": "Two `g`s in a row. Press them one after the other, not together."
+      },
+      {
+        "id": "t2-anchors-file-bottom",
+        "instruction": "Jump to the bottom of the file with `G`.",
+        "targetCommandID": "motion.file-bottom",
+        "canonicalKeys": "G",
+        "requiredReps": 2,
+        "success": { "verb": "move", "targetMotion": "fileEnd", "cursorLine": 4 },
+        "hint": "Capital `G` — hold Shift. It is `gg`'s opposite end."
+      }
+    ]
+  },
+  {
+    "id": "t2-find-char",
+    "tier": 2,
+    "order": 3,
+    "title": "Fly to a character",
+    "concept": "`f` flies along this line to a character you name: `fk` lands ON the next `k`. `t` stops just before it, and capital `F` searches backwards. Aim at a letter and you are there.",
+    "document": "# Errands\n\npick up the keys at 4pm",
+    "teaches": ["motion.find-forward", "motion.till-forward", "motion.find-back"],
+    "steps": [
+      {
+        "id": "t2-find-forward",
+        "instruction": "Fly to the first `k` on this line: press `f` then `k`.",
+        "targetCommandID": "motion.find-forward",
+        "setupKeys": "jj",
+        "canonicalKeys": "fk",
+        "success": {
+          "verb": "move", "targetMotion": "find", "targetChar": "k", "cursorCol": 3
+        },
+        "hint": "`f` waits for one more key — the character to fly to."
+      },
+      {
+        "id": "t2-find-till",
+        "instruction": "Stop just BEFORE the `4`: press `t` then `4`.",
+        "targetCommandID": "motion.till-forward",
+        "setupKeys": "jj",
+        "canonicalKeys": "t4",
+        "success": {
+          "verb": "move", "targetMotion": "till", "targetChar": "4", "cursorCol": 19
+        },
+        "hint": "`t` is \"till\" — it stops one character short of the target."
+      },
+      {
+        "id": "t2-find-back",
+        "instruction": "Search backwards to the previous `k`: press `F` then `k`.",
+        "targetCommandID": "motion.find-back",
+        "setupKeys": "jj$",
+        "canonicalKeys": "Fk",
+        "success": {
+          "verb": "move", "targetMotion": "findBack", "targetChar": "k", "cursorCol": 12
+        },
+        "hint": "Capital `F` — hold Shift. Same idea as `f`, aimed the other way."
+      }
+    ]
+  },
+  {
+    "id": "t3-delete-char",
+    "tier": 3,
+    "order": 1,
+    "title": "Delete one, undo one",
+    "concept": "`x` deletes the single character under the cursor — think of it as crossing something out. `u` undoes your last change. Nothing you do here is permanent, which is exactly why you can experiment.",
+    "document": "# Typos\n\nThe quickk brown fox.",
+    "teaches": ["action.delete-char", "action.undo"],
+    "steps": [
+      {
+        "id": "t3-delete-char-x",
+        "instruction": "The cursor sits on the doubled `k`. Press `x` to cross it out.",
+        "targetCommandID": "action.delete-char",
+        "setupKeys": "jjfk",
+        "canonicalKeys": "x",
+        "success": {
+          "verb": "deleteChar", "category": "action",
+          "bufferContains": ["The quick brown fox."], "bufferOmits": ["quickk"]
+        },
+        "hint": "`x` deletes exactly the character under the block cursor."
+      },
+      {
+        "id": "t3-delete-char-undo",
+        "instruction": "The `k` is gone. Press `u` to undo and bring it back.",
+        "targetCommandID": "action.undo",
+        "setupKeys": "jjfkx",
+        "canonicalKeys": "u",
+        "success": { "verb": "undo", "bufferContains": ["quickk"] },
+        "hint": "`u` is undo. Press it as many times as you need."
+      }
+    ]
+  },
+  {
+    "id": "t3-delete-verb",
+    "tier": 3,
+    "order": 2,
+    "title": "`d` is a verb",
+    "concept": "`d` is a verb: delete. On its own it does nothing — it waits for a noun. `dw` deletes a word, `d$` deletes to the end of the line, and doubling the verb (`dd`) applies it to the whole line. Verb plus noun: that is Vim's whole grammar, starting here.",
+    "document": "# Draft\n\nThis draft sentence is filler and must go.\nKeep this line.",
+    "teaches": ["operator.delete", "action.delete-line"],
+    "steps": [
+      {
+        "id": "t3-delete-word",
+        "instruction": "The cursor is on `draft`. Delete that word with `dw`.",
+        "targetCommandID": "operator.delete",
+        "setupKeys": "jjw",
+        "canonicalKeys": "dw",
+        "success": {
+          "verb": "delete", "category": "operatorMotion", "targetMotion": "wordForward",
+          "bufferOmits": ["draft"]
+        },
+        "hint": "`d` then `w`: delete, then the word noun. Type them one after the other."
+      },
+      {
+        "id": "t3-delete-to-line-end",
+        "instruction": "Now delete everything from here to the end of the line with `d$`.",
+        "targetCommandID": "operator.delete",
+        "setupKeys": "jjw",
+        "canonicalKeys": "d$",
+        "success": {
+          "verb": "delete", "targetMotion": "lineEnd",
+          "bufferOmits": ["filler"], "bufferContains": ["Keep this line."]
+        },
+        "hint": "Same verb, different noun: `d` then the `$` you learned as \"end of line\"."
+      },
+      {
+        "id": "t3-delete-line",
+        "instruction": "Delete this whole line with `dd`.",
+        "targetCommandID": "action.delete-line",
+        "setupKeys": "jj",
+        "canonicalKeys": "dd",
+        "success": {
+          "verb": "delete", "targetLine": true,
+          "bufferOmits": ["This draft sentence"], "bufferContains": ["Keep this line."]
+        },
+        "hint": "Doubling a verb applies it to the line: `dd`."
+      }
+    ]
+  },
+  {
+    "id": "t3-change-verb",
+    "tier": 3,
+    "order": 3,
+    "title": "`c` is delete-then-type",
+    "concept": "`c` is change: it deletes exactly what `d` would have, then drops you straight into Insert mode so you can type the replacement. Same grammar, same nouns — `cw` changes a word, `cc` changes the whole line.",
+    "document": "# Title\n\nRename this heading soon.",
+    "teaches": ["operator.change", "action.change-line"],
+    "steps": [
+      {
+        "id": "t3-change-word",
+        "instruction": "The cursor is on `this`. Replace that word with `cw`.",
+        "targetCommandID": "operator.change",
+        "setupKeys": "jjw",
+        "canonicalKeys": "cw",
+        "success": {
+          "verb": "change", "targetMotion": "wordForward", "mode": "insert",
+          "bufferOmits": ["this"]
+        },
+        "hint": "`c` then `w`. Notice the mode badge flips to INSERT — start typing."
+      },
+      {
+        "id": "t3-change-line",
+        "instruction": "Now replace the entire line with `cc`.",
+        "targetCommandID": "action.change-line",
+        "setupKeys": "jj",
+        "canonicalKeys": "cc",
+        "success": {
+          "verb": "change", "targetLine": true, "mode": "insert",
+          "bufferOmits": ["Rename"]
+        },
+        "hint": "Double the verb for the whole line — `cc`, exactly like `dd`."
+      }
+    ]
+  },
+  {
+    "id": "t3-yank-put",
+    "tier": 3,
+    "order": 4,
+    "title": "Copy and paste, Vim's way",
+    "concept": "`y` yanks — Vim's word for copy — and `yy` yanks a whole line. `p` puts it back after the cursor, `P` before it. Copy and paste in two keystrokes, no modifier keys.",
+    "document": "- water the plants\n- feed the cat",
+    "teaches": ["operator.yank", "action.yank-line", "action.paste-after", "action.paste-before"],
+    "steps": [
+      {
+        "id": "t3-yank-line",
+        "instruction": "Copy this whole line with `yy`. Nothing visible happens — that is correct.",
+        "targetCommandID": "action.yank-line",
+        "canonicalKeys": "yy",
+        "success": { "verb": "yank", "targetLine": true, "bufferUnchanged": true },
+        "hint": "`yy` is the yank twin of `dd`: doubled verb, whole line."
+      },
+      {
+        "id": "t3-put-after",
+        "instruction": "The line is copied. Paste it below with `p`.",
+        "targetCommandID": "action.paste-after",
+        "setupKeys": "yy",
+        "canonicalKeys": "p",
+        "success": {
+          "verb": "put", "bufferChanged": true,
+          "bufferContains": ["- water the plants\n- water the plants"]
+        },
+        "hint": "Lowercase `p` puts the copied line after the current one."
+      },
+      {
+        "id": "t3-put-before",
+        "instruction": "Paste it ABOVE instead with `P`.",
+        "targetCommandID": "action.paste-before",
+        "setupKeys": "yy",
+        "canonicalKeys": "P",
+        "success": { "verb": "putBefore", "bufferChanged": true },
+        "hint": "Capital `P` — hold Shift. Same paste, on the other side."
+      }
+    ]
+  },
+  {
+    "id": "t3-counts",
+    "tier": 3,
+    "order": 5,
+    "title": "Numbers multiply commands",
+    "concept": "Every command takes a count. `3w` jumps three words, `2dd` deletes two lines. Say the number first, then the command — the number multiplies whatever follows, so you never have to learn a separate command for \"do it three times\".",
+    "document": "alpha beta gamma delta epsilon\none\ntwo\nthree",
+    "teaches": ["grammar.count-motion", "grammar.count-delete-lines"],
+    "steps": [
+      {
+        "id": "t3-counts-motion",
+        "instruction": "Jump three words forward in one go: press `3` then `w`.",
+        "targetCommandID": "grammar.count-motion",
+        "canonicalKeys": "3w",
+        "success": {
+          "verb": "move", "targetMotion": "wordForward", "minCount": 3, "cursorCol": 17
+        },
+        "hint": "Type the digit first, then the motion — `3w`, not `w3`."
+      },
+      {
+        "id": "t3-counts-delete",
+        "instruction": "Delete two lines at once: press `2` then `dd`.",
+        "targetCommandID": "grammar.count-delete-lines",
+        "setupKeys": "j",
+        "canonicalKeys": "2dd",
+        "success": {
+          "verb": "delete", "targetLine": true, "minCount": 2,
+          "bufferOmits": ["one", "two"], "bufferContains": ["three"]
+        },
+        "hint": "The count goes in front of the whole command: `2dd`."
+      }
+    ]
+  },
+  {
+    "id": "t4-inner-word",
+    "tier": 4,
+    "order": 1,
+    "title": "Text objects: the noun that finds itself",
+    "concept": "`iw` means \"inner word\" — the word you are standing in, no matter WHERE in it you are standing. `aw` is \"a word\", including the space after it. Pair one with a verb and you get `diw`: delete this word, from anywhere inside it. You stop aiming; you just name the thing.",
+    "document": "# Cleanup\n\nThe very very quick fox.",
+    "teaches": ["textobject.inner-word", "textobject.around-word", "grammar.delete-inner-word"],
+    "steps": [
+      {
+        "id": "t4-inner-word-delete",
+        "instruction": "The cursor is in the middle of the first `very`. Delete just that word with `diw`.",
+        "targetCommandID": "grammar.delete-inner-word",
+        "setupKeys": "jjwl",
+        "canonicalKeys": "diw",
+        "success": {
+          "verb": "delete", "modifier": "inside", "targetTextObject": "word",
+          "category": "fullGrammar",
+          "bufferContains": ["The  very quick fox."]
+        },
+        "hint": "Three keys: `d` (delete) `i` (inner) `w` (word). Notice you did not have to move first."
+      },
+      {
+        "id": "t4-around-word-delete",
+        "instruction": "Now use `daw` — the same thing, but it takes the trailing space too.",
+        "targetCommandID": "textobject.around-word",
+        "setupKeys": "jjwl",
+        "canonicalKeys": "daw",
+        "success": {
+          "verb": "delete", "modifier": "around", "targetTextObject": "word",
+          "bufferContains": ["The very quick fox."]
+        },
+        "hint": "Swap the `i` for an `a`: `daw`. Look at the spacing it leaves behind."
+      }
+    ]
+  },
+  {
+    "id": "t4-quotes",
+    "tier": 4,
+    "order": 2,
+    "title": "Quotes are a noun too",
+    "concept": "The same shape works on quotes: `i\"` is everything INSIDE the quote marks, `a\"` includes the marks themselves. `di\"` empties a quoted string from anywhere on the line — this is the command that makes people fall in love with Vim.",
+    "document": "title: \"old working title\"\nauthor: \"me\"",
+    "teaches": ["textobject.inner-quotes", "textobject.around-quotes", "grammar.delete-inside-quotes"],
+    "steps": [
+      {
+        "id": "t4-quotes-delete-inside",
+        "instruction": "Empty the quoted title with `di\"` — delete inside quotes.",
+        "targetCommandID": "grammar.delete-inside-quotes",
+        "setupKeys": "fo",
+        "canonicalKeys": "di\"",
+        "success": {
+          "verb": "delete", "modifier": "inside", "targetTextObject": "quotedString",
+          "category": "fullGrammar",
+          "bufferContains": ["title: \"\""]
+        },
+        "hint": "`d` `i` then the `\"` key (Shift-apostrophe). The quote marks survive."
+      },
+      {
+        "id": "t4-quotes-inner-again",
+        "instruction": "Do it once more — `di\"` is worth burning into your fingers.",
+        "targetCommandID": "textobject.inner-quotes",
+        "setupKeys": "fo",
+        "canonicalKeys": "di\"",
+        "requiredReps": 2,
+        "success": {
+          "verb": "delete", "modifier": "inside", "targetTextObject": "quotedString",
+          "bufferContains": ["title: \"\""]
+        },
+        "hint": "Same three keys: `d` `i` `\"`."
+      },
+      {
+        "id": "t4-quotes-delete-around",
+        "instruction": "On the author line, use `da\"` to take the quote marks as well.",
+        "targetCommandID": "textobject.around-quotes",
+        "setupKeys": "jfm",
+        "canonicalKeys": "da\"",
+        "requiredReps": 2,
+        "success": {
+          "verb": "delete", "modifier": "around", "targetTextObject": "quotedString",
+          "bufferContains": ["author:"], "bufferOmits": ["\"me\""]
+        },
+        "hint": "`a` instead of `i` again — around, not inner."
+      }
+    ]
+  },
+  {
+    "id": "t4-brackets-paragraphs",
+    "tier": 4,
+    "order": 3,
+    "title": "Brackets and paragraphs",
+    "concept": "Learn the shape once and it works everywhere: `i(` is inside the parentheses, `a(` includes them, `ip` is a paragraph and `ap` a paragraph plus the blank line after it. Same verbs, new nouns — nothing new to memorise.",
+    "document": "Ring the bell(twice) at noon.\n\nThis paragraph is scratch.\nDelete the whole thing.\n\nKeep this one.",
+    "teaches": [
+      "textobject.inner-parens",
+      "textobject.around-parens",
+      "textobject.inner-paragraph",
+      "textobject.around-paragraph",
+      "grammar.yank-around-parens",
+      "grammar.delete-around-paragraph"
+    ],
+    "steps": [
+      {
+        "id": "t4-parens-yank-around",
+        "instruction": "Copy the bracketed bit, brackets included, with `ya(`.",
+        "targetCommandID": "grammar.yank-around-parens",
+        "setupKeys": "fw",
+        "canonicalKeys": "ya(",
+        "requiredReps": 2,
+        "success": {
+          "verb": "yank", "modifier": "around", "targetTextObject": "parens",
+          "bufferUnchanged": true, "registerContains": "(twice)"
+        },
+        "hint": "`y` (yank) `a` (around) `(`. The document should not change — it is a copy."
+      },
+      {
+        "id": "t4-parens-delete-inside",
+        "instruction": "Now empty the brackets but keep them, with `di(`.",
+        "targetCommandID": "textobject.inner-parens",
+        "setupKeys": "fw",
+        "canonicalKeys": "di(",
+        "requiredReps": 2,
+        "success": {
+          "verb": "delete", "modifier": "inside", "targetTextObject": "parens",
+          "bufferContains": ["bell() at noon."]
+        },
+        "hint": "`d` `i` `(` — inner, so the brackets stay behind."
+      },
+      {
+        "id": "t4-paragraph-delete-around",
+        "instruction": "Delete this whole scratch paragraph — and the blank line after it — with `dap`.",
+        "targetCommandID": "grammar.delete-around-paragraph",
+        "setupKeys": "jj",
+        "canonicalKeys": "dap",
+        "requiredReps": 2,
+        "success": {
+          "verb": "delete", "modifier": "around", "targetTextObject": "paragraph",
+          "bufferOmits": ["scratch"], "bufferContains": ["Keep this one."]
+        },
+        "hint": "`d` `a` `p`. A paragraph is any run of lines between blank lines."
+      },
+      {
+        "id": "t4-paragraph-delete-inner",
+        "instruction": "Try `dip` instead — inner paragraph, leaving the blank line in place.",
+        "targetCommandID": "textobject.inner-paragraph",
+        "setupKeys": "jj",
+        "canonicalKeys": "dip",
+        "requiredReps": 2,
+        "success": {
+          "verb": "delete", "modifier": "inside", "targetTextObject": "paragraph",
+          "bufferOmits": ["scratch"], "bufferContains": ["Keep this one."]
+        },
+        "hint": "`d` `i` `p`. Compare the blank lines with what `dap` left."
+      }
+    ]
+  },
+  {
+    "id": "t4-grammar-click",
+    "tier": 4,
+    "order": 4,
+    "title": "The grammar clicks",
+    "concept": "Here is the whole language: VERB + MODIFIER + NOUN. `d` + `i` + `w` is delete inner word. Swap any single piece — `c` for `d`, `\"` for `w` — and you have a command you never had to learn. That is why Vim users say they are not memorising; they are speaking.",
+    "document": "# Release note\n\nVimkin ships with a \"TODO tagline\" and a zzz stray word.",
+    "teaches": ["grammar.change-inside-quotes"],
+    "steps": [
+      {
+        "id": "t4-click-diw",
+        "instruction": "Start from the verb you know: delete the placeholder word with `diw`.",
+        "targetCommandID": "grammar.delete-inner-word",
+        "setupKeys": "jjfz",
+        "canonicalKeys": "diw",
+        "requiredReps": 2,
+        "success": {
+          "verb": "delete", "modifier": "inside", "targetTextObject": "word",
+          "category": "fullGrammar", "bufferOmits": ["zzz"]
+        },
+        "hint": "`d` `i` `w` — the cursor is already inside the word."
+      },
+      {
+        "id": "t4-click-ciw",
+        "instruction": "Now swap ONLY the verb: `ciw` deletes it and lets you type the replacement.",
+        "targetCommandID": "grammar.delete-inner-word",
+        "setupKeys": "jjfz",
+        "canonicalKeys": "ciw",
+        "requiredReps": 2,
+        "success": {
+          "verb": "change", "modifier": "inside", "targetTextObject": "word",
+          "category": "fullGrammar", "mode": "insert", "bufferOmits": ["zzz"]
+        },
+        "hint": "One letter changed: `c` instead of `d`. Everything else is identical."
+      },
+      {
+        "id": "t4-click-ci-quotes",
+        "instruction": "Now swap ONLY the noun: `ci\"` rewrites the quoted tagline.",
+        "targetCommandID": "grammar.change-inside-quotes",
+        "setupKeys": "jjfT",
+        "canonicalKeys": "ci\"",
+        "requiredReps": 2,
+        "success": {
+          "verb": "change", "modifier": "inside", "targetTextObject": "quotedString",
+          "category": "fullGrammar", "mode": "insert",
+          "bufferContains": ["a \"\" and"]
+        },
+        "hint": "`c` `i` `\"`. Same verb as `ciw`, a different noun — and it just works."
+      }
+    ]
+  }
+]
