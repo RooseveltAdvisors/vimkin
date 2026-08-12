@@ -27,6 +27,10 @@ public struct GameView: View {
     /// Keyboard shell (U18). The briefing and the win panel are chrome; the
     /// level itself belongs entirely to the VimEngine.
     @State private var keyboard = KeyboardSurfaceModel()
+    /// U21 — after a quiet spell, offer the keys instead of waiting to be
+    /// asked. A level has a whole toolkit rather than one answer, so the hint
+    /// re-states the objective and points at the bar.
+    @State private var idle = IdleHintModel()
 
     public init(
         level: Level,
@@ -81,7 +85,16 @@ public struct GameView: View {
             VStack(spacing: 12) {
                 hud
                 Spacer()
+                if let remaining = remainingObjective { remainingBar(remaining) }
                 if let toast { toastBar(toast) }
+                if idle.isDue && !showIntro && !session.state.isComplete {
+                    IdleHintBar(
+                        text: IdleHintBar.forLevel(
+                            keys: toolkit.map(\.keys),
+                            objective: LevelBriefing.shortObjective(for: level)
+                        )
+                    )
+                }
                 itemBar
             }
             .padding(18)
@@ -91,6 +104,12 @@ public struct GameView: View {
             if session.state.isComplete && !showIntro { winPanel }
         }
         .frame(minWidth: 820, minHeight: 560)
+        .animation(.easeOut(duration: 0.2), value: idle.isDue)
+        // The hint watches only while the level is actually being played.
+        .task(id: showIntro) {
+            if showIntro { idle.end() } else { idle.begin() }
+        }
+        .onDisappear { idle.end() }
         // `hasInnerCapture` is true because the SpriteKit surface's own
         // `KeyCaptureView` above is the one reading plain keys. This modifier
         // is here for the hint bar, the `?` overlay and the ⌘-verbs — routing
@@ -134,6 +153,7 @@ public struct GameView: View {
     // MARK: - Input
 
     private func handle(_ key: KeyInput) {
+        idle.noteActivity()
         let step = session.send(key)
         scene.apply(session.state, step: step)
         if let cheer = step.newlyRescued.compactMap(\.cheer).first {
@@ -162,16 +182,28 @@ public struct GameView: View {
                 Text(level.teaches)
                     .font(.system(.caption, design: .monospaced))
                     .foregroundStyle(GameTheme.parchment.opacity(0.5))
+                // The objective, ON SCREEN, the whole time. Before U21 it was
+                // said nowhere: the intro card is atmosphere, and once it is
+                // dismissed nothing told you that walking onto a Vimkin is what
+                // frees it.
+                Text(LevelBriefing.shortObjective(for: level))
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(GameTheme.cursorCyan.opacity(0.75))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
             }
             Spacer()
             hudStat(
-                label: "vimkins",
+                label: "vimkins freed",
                 value: "\(session.state.rescuedCount)/\(session.state.totalVimkins)",
                 tint: GameTheme.vimkinAmber
             )
+            // NOT a fraction: `5/26` read as "5 of 26 collected, keep going",
+            // when it is a budget being spent against a target you are free to
+            // ignore. The count is the number; par is named beside it.
             hudStat(
-                label: "keys",
-                value: "\(session.state.keystrokes)/\(level.par)",
+                label: "keys used · par \(level.par)",
+                value: "\(session.state.keystrokes)",
                 tint: session.state.isUnderPar ? GameTheme.leaf : GameTheme.coral
             )
             Button(action: onExit) {
@@ -266,6 +298,37 @@ public struct GameView: View {
         .padding(.trailing, 4)
     }
 
+    /// The boss level rescues four Vimkins and then keeps going — it carries an
+    /// extra goal that is not drawn anywhere in the world. Played cold, the HUD
+    /// reads `4/4` while nothing happens and there is no way to find out why.
+    /// This is that missing sentence.
+    private var remainingObjective: String? {
+        guard !showIntro else { return nil }
+        return LevelBriefing.remaining(
+            for: level,
+            rescued: session.state.rescuedCount,
+            isComplete: session.state.isComplete
+        )
+    }
+
+    private func remainingBar(_ message: String) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: "flag.checkered")
+                .foregroundStyle(GameTheme.vimkinAmber)
+            Text(message)
+                .font(.system(.callout, design: .monospaced))
+                .foregroundStyle(GameTheme.parchment)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(GameTheme.plumDark.opacity(0.94), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(GameTheme.vimkinAmber.opacity(0.45), lineWidth: 1)
+        )
+    }
+
     private func toastBar(_ message: String) -> some View {
         Text(.init(message))
             .font(.system(.callout, design: .monospaced))
@@ -296,6 +359,24 @@ public struct GameView: View {
                 Text(level.teaches)
                     .font(.system(.callout, design: .monospaced))
                     .foregroundStyle(GameTheme.vimkinAmber)
+
+                // The story line above is atmosphere. This is the brief: what
+                // you actually have to do, and what the number in the corner
+                // means. Derived from the level, so it can never contradict it.
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("YOUR JOB")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .tracking(1.1)
+                        .foregroundStyle(GameTheme.cursorCyan.opacity(0.85))
+                    briefingLine(LevelBriefing.objective(for: level))
+                    ForEach(LevelBriefing.extraObjectives(for: level), id: \.self) { extra in
+                        briefingLine(extra)
+                    }
+                    briefingLine(LevelBriefing.parNote(for: level))
+                }
+                .frame(maxWidth: 520, alignment: .leading)
+                .padding(.top, 4)
+
                 Button { showIntro = false } label: {
                     HStack(spacing: 8) {
                         Text("Begin")
@@ -311,13 +392,31 @@ public struct GameView: View {
         }
     }
 
+    private func briefingLine(_ text: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("·")
+                .font(.system(.body, design: .monospaced))
+                .foregroundStyle(GameTheme.vimkinAmber.opacity(0.7))
+            Text(text)
+                .font(.system(.callout, design: .monospaced))
+                .foregroundStyle(GameTheme.parchment.opacity(0.85))
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+        }
+    }
+
     private var winPanel: some View {
         VStack(spacing: 14) {
             Text("everyone is home")
                 .font(.system(size: 26, weight: .bold, design: .monospaced))
                 .foregroundStyle(GameTheme.vimkinAmber)
+            // "under par" is golf, and a first-timer should not have to know
+            // golf to read their own result — so the target is named in keys.
             Text("\(session.state.totalVimkins) rescued · \(session.state.keystrokes) keys "
-                + (session.state.isUnderPar ? "· under par" : "· par was \(level.par)"))
+                + (session.state.isUnderPar
+                    ? "· inside the \(level.par)-key par"
+                    : "· the par was \(level.par) — the page is still done"))
                 .font(.system(.callout, design: .monospaced))
                 .foregroundStyle(GameTheme.parchment.opacity(0.8))
             HStack(spacing: 12) {

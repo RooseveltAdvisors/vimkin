@@ -37,6 +37,9 @@ public struct LessonView: View {
     /// Keyboard shell (U15). The concept card and the "learned" card are chrome;
     /// the practice beat between them belongs entirely to the VimEngine.
     @State private var keyboard = KeyboardSurfaceModel()
+    /// U21 — after a quiet spell, offer the step's key rather than waiting to
+    /// be asked. The reveal button is easy to miss; this is not.
+    @State private var idle = IdleHintModel()
 
     /// The session currently on screen. Lags `coordinator.session` by the hold
     /// window after a judged attempt, so the outcome is seen before the reset.
@@ -200,6 +203,9 @@ public struct LessonView: View {
             coordinator.onReward = { event in juice.emit(event) }
         }
         .onChange(of: coordinator.attemptID) { _, id in hold(untilAttempt: id) }
+        // A new step is a fresh quiet spell.
+        .task(id: coordinator.stepNumber) { idle.begin() }
+        .onDisappear { idle.end() }
     }
 
     private var editorStage: some View {
@@ -211,6 +217,17 @@ public struct LessonView: View {
                     // Input closes while the judged outcome is on screen, so an
                     // eager next keystroke cannot cut the animation short.
                     if holding { return .block(reason: "watch what that did") }
+                    idle.noteActivity()
+                    // A step that DRILLS `Esc` collides with the chrome's
+                    // `Esc Esc` leave-chord: the first press scores a rep, the
+                    // second throws you out of the lesson. Lesson 1's second
+                    // step asks for three of them in a row, so the very first
+                    // lesson in the app could not be completed by doing what it
+                    // says. On those steps the judge gets `Esc` and `⌘L` is the
+                    // way out — it is on the back button and the hint bar.
+                    if key == .escape, coordinator.stepDrillsEscape {
+                        return coordinator.handle(key: key)
+                    }
                     // Otherwise the chrome's router sits IN FRONT of the lesson
                     // judge: a second Esc leaves without the judge ever seeing
                     // the key, and every other key reaches the lesson unchanged.
@@ -271,6 +288,9 @@ public struct LessonView: View {
                     }
                     Spacer()
                 }
+                if idle.isDue, !coordinator.keysRevealed {
+                    IdleHintBar(text: IdleHintBar.forKeys(displayKeys(step.canonicalKeys)))
+                }
             }
             ghostLegend
         }
@@ -278,6 +298,7 @@ public struct LessonView: View {
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
         .background(TutorialTheme.panel)
+        .animation(.easeOut(duration: 0.2), value: idle.isDue)
     }
 
     /// The one-liner over an outcome preview, while its ghosts are up.

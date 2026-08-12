@@ -75,6 +75,18 @@ final class LessonCoordinator {
     var repsRequired: Int { runner.repsRequired }
     var isComplete: Bool { runner.isComplete }
 
+    /// True when the step the learner is on asks for `Esc` itself.
+    ///
+    /// This exists because `Esc` is the one key that is ALSO chrome: the
+    /// keyboard shell's leave-chord is `Esc Esc`. A step that drills `Esc`
+    /// therefore scores the first press and is thrown out of the lesson by the
+    /// second — and Lesson 1's second step asks for three. `LessonView` reads
+    /// this to route `Esc` to the judge instead of the chord on those steps.
+    var stepDrillsEscape: Bool {
+        guard phase == .practice, let step else { return false }
+        return step.canonicalKeys == "\u{1b}"
+    }
+
     /// The ghosts to draw right now: only before the learner has committed to a
     /// key this attempt, and only if the lesson opted in.
     var ghosts: [OutcomeGhost] {

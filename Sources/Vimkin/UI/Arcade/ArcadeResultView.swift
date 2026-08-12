@@ -55,7 +55,7 @@ struct ArcadeResultView: View {
             Text(
                 "\(result.drillsCleared) of \(result.drillsPlanned) cleared"
                     + " · \(result.accuracyPercent)% accuracy"
-                    + " · best combo ×\(max(1, result.bestCombo))"
+                    + " · best streak \(max(0, result.bestCombo)) in a row"
             )
             .font(.system(.callout, design: .monospaced))
             .foregroundStyle(ArcadeTheme.paper.opacity(0.7))
@@ -171,7 +171,7 @@ struct ArcadeResultView: View {
                             .monospacedDigit()
                             .frame(width: 52, alignment: .leading)
                         if hit.isFlawless {
-                            Text("×\(hit.comboLength)")
+                            Text("\(hit.comboLength) in a row")
                                 .font(.system(.caption, design: .monospaced))
                                 .foregroundStyle(ArcadeTheme.comboTint(hit.comboLength))
                         } else {

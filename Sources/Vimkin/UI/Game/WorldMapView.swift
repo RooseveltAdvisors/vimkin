@@ -16,6 +16,13 @@ public struct AdventureView: View {
     @State private var results = GameProgressStore()
     @State private var playing: Level?
     @State private var loadError: String?
+    /// U21 — the one-screen "how this works", first visit only.
+    @State private var firstRun = FirstRunStore()
+    @State private var showGuide = false
+    /// Why a locked page did not open. Before U21 pressing `⏎` on a locked
+    /// card did nothing at all and said nothing at all.
+    @State private var lockedNote: String?
+    @State private var lockedNoteID = 0
     /// Keyboard shell (U18): the ten pages are one `hjkl` grid.
     @State private var keyboard = KeyboardSurfaceModel()
     @State private var cursor = ListCursor(count: 0, columns: AdventureView.columns)
@@ -63,6 +70,7 @@ public struct AdventureView: View {
                     loadError = "\(error)"
                 }
             }
+            showGuide = firstRun.shouldShowGuide(for: .adventure)
         }
     }
 
@@ -105,7 +113,20 @@ public struct AdventureView: View {
                 }
                 Spacer(minLength: 0)
             }
+            if let lockedNote {
+                VStack {
+                    Spacer()
+                    lockedBar(lockedNote)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 18)
+                }
+                .allowsHitTesting(false)
+            }
+            if showGuide {
+                FirstRunGuideView(guide: ModeGuide.guide(for: .adventure)) { dismissGuide() }
+            }
         }
+        .animation(.easeOut(duration: 0.18), value: lockedNote)
         .keyboardSurface(keyboard, map: SurfaceKeys.worldMap, onAction: handle)
         .onChange(of: world?.levels.count ?? 0) { _, count in cursor.setCount(count) }
         .task(id: world?.levels.count ?? 0) { cursor.setCount(world?.levels.count ?? 0) }
@@ -114,19 +135,67 @@ public struct AdventureView: View {
     // MARK: - Keyboard
 
     private func handle(_ action: NavAction) {
+        // The guide owns no keys of its own: while it is up, ANY navigation
+        // key means "got it". One less thing competing for the keyboard.
+        if showGuide {
+            dismissGuide()
+            return
+        }
         if cursor.apply(action) { return }
         switch action {
         case .activate:
             guard let world, world.levels.indices.contains(cursor.index) else { return }
             let level = world.levels[cursor.index]
             // Locked pages stay reachable by the cursor so `j` never skips a
-            // gap in the grid — they just do not open.
-            if results.isUnlocked(level: level, in: world) { playing = level }
+            // gap in the grid — they just do not open. They DO say why: a
+            // dead key with no explanation reads as a broken app.
+            if results.isUnlocked(level: level, in: world) {
+                playing = level
+                lockedNote = nil
+            } else {
+                showLockedNote(for: level, in: world)
+            }
         case .back:
             onExit()
         default:
             break
         }
+    }
+
+    private func dismissGuide() {
+        showGuide = false
+        firstRun.markSeen(.adventure)
+    }
+
+    private func showLockedNote(for level: Level, in world: LevelDatabase) {
+        let previous = world.level(order: level.order - 1)?.title
+        lockedNote = previous.map { "\(level.title) is still locked — clear \($0) first." }
+            ?? "\(level.title) is still locked."
+        lockedNoteID += 1
+        let id = lockedNoteID
+        Task {
+            try? await Task.sleep(for: .seconds(3.2))
+            if id == lockedNoteID { lockedNote = nil }
+        }
+    }
+
+    private func lockedBar(_ message: String) -> some View {
+        HStack(spacing: 9) {
+            Image(systemName: "lock.fill")
+                .foregroundStyle(GameTheme.vimkinAmber.opacity(0.9))
+            Text(message)
+                .font(.system(.callout, design: .monospaced))
+                .foregroundStyle(GameTheme.parchment)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .background(GameTheme.plumDark.opacity(0.94), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(GameTheme.vimkinAmber.opacity(0.4), lineWidth: 1)
+        )
+        .transition(.opacity)
     }
 
     private var header: some View {
@@ -201,11 +270,13 @@ public struct AdventureView: View {
                     .foregroundStyle(GameTheme.parchment.opacity(unlocked ? 0.6 : 0.28))
                     .multilineTextAlignment(.leading)
                     .lineLimit(2, reservesSpace: true)
+                // Naked numbers beside an icon ("3 ✦ · 20/26 ⌨") told a
+                // first-timer nothing. Both stats now say what they count.
                 HStack(spacing: 10) {
-                    Label("\(level.vimkins.count)", systemImage: "sparkles")
+                    Label("\(level.vimkins.count) vimkins", systemImage: "sparkles")
                         .foregroundStyle(GameTheme.vimkinAmber.opacity(unlocked ? 0.85 : 0.3))
                     if let best = result?.bestKeystrokes, cleared {
-                        Label("\(best)/\(level.par)", systemImage: "keyboard")
+                        Label("best \(best) · par \(level.par)", systemImage: "keyboard")
                             .foregroundStyle(
                                 best <= level.par ? GameTheme.leaf : GameTheme.coral
                             )
