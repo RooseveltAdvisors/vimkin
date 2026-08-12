@@ -16,6 +16,9 @@ struct VimkinApp: App {
 
 struct ContentView: View {
     @State private var showPlayground = false
+    // U6 (dojo): sheet + the lookup overlay's "Practice this →" hand-off.
+    @State private var showDojo = false
+    @State private var practiceCommandID: String?
 
     var body: some View {
         if showPlayground {
@@ -43,7 +46,24 @@ struct ContentView: View {
                     .buttonStyle(.borderedProminent)
                     .font(.system(.body, design: .monospaced))
                     .padding(.top, 24)
+                Button("Practice") { showDojo = true }
+                    .buttonStyle(.bordered)
+                    .font(.system(.body, design: .monospaced))
             }
+        }
+        .sheet(isPresented: $showDojo) {
+            DojoView(focusCommandID: practiceCommandID) {
+                showDojo = false
+                practiceCommandID = nil
+            }
+            .frame(minWidth: 860, minHeight: 620)
+        }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: OverlayController.practiceCommandNotification)
+        ) { note in
+            practiceCommandID = note.object as? String
+            showDojo = true
         }
     }
 }
