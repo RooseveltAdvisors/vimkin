@@ -84,22 +84,28 @@ struct SurfaceKeyMapTests {
         }
     }
 
-    @Test("the grid surface binds h and l; plain lists do not")
-    func gridMotions() {
-        #expect(SurfaceKeys.worldMap.action(for: .char("h")) == .moveLeft)
-        #expect(SurfaceKeys.worldMap.action(for: .char("l")) == .moveRight)
-        #expect(SurfaceKeys.lessonPath.action(for: .char("h")) == nil)
-        #expect(SurfaceKeys.mastery.action(for: .char("l")) == nil)
-    }
-
-    @Test("every list surface moves with j/k and jumps with G")
+    /// `docs/keymap.md` rule 4: `hjkl` moves EVERYWHERE in navigation. On a
+    /// one-column list `ListCursor` steps `h`/`l` by a single item, so the same
+    /// four keys work on a grid and a list alike — one motion vocabulary, not
+    /// two. (The hub is the exception and stays a mnemonic surface: `l` there
+    /// is Lessons, the same letter the launcher uses.)
+    @Test("every navigation list moves with h j k l and jumps with gg / G")
     func listMotions() {
         for surface in allSurfaces where surface.map.hasListJumps {
+            #expect(surface.map.action(for: .char("h")) == .moveLeft, "\(surface.name)")
             #expect(surface.map.action(for: .char("j")) == .moveDown, "\(surface.name)")
             #expect(surface.map.action(for: .char("k")) == .moveUp, "\(surface.name)")
+            #expect(surface.map.action(for: .char("l")) == .moveRight, "\(surface.name)")
             #expect(surface.map.action(for: .char("G")) == .last, "\(surface.name)")
             #expect(surface.map.action(for: .enter) == .activate, "\(surface.name)")
         }
+    }
+
+    @Test("the hub is mnemonic, not a list: l is Lessons, not a motion")
+    func hubIsNotAList() {
+        #expect(SurfaceKeys.hub.action(for: .char("l")) == .verb(Hub.Verb.lessons))
+        #expect(SurfaceKeys.hub.action(for: .char("h")) == nil)
+        #expect(SurfaceKeys.hub.hasListJumps == false)
     }
 
     @Test("every navigation surface answers Esc, q and ?")
@@ -153,6 +159,51 @@ struct SurfaceKeyMapTests {
             #expect(!surface.map.title.isEmpty, "\(surface.name)")
             #expect(!surface.map.barChips.isEmpty, "\(surface.name) has an empty hint bar")
         }
+    }
+
+    /// `?` is a which-key popup, not a flat dump: every chip declares a band,
+    /// and the bands partition the chips exactly once.
+    @Test("every surface's ? map is grouped, and the groups lose nothing")
+    func everyMapIsGrouped() {
+        for surface in allSurfaces + [("launcher", SurfaceKeys.launcher, InputMode.navigation)] {
+            let groups = surface.map.groupedChips
+            #expect(!groups.isEmpty, "\(surface.name) has no groups")
+            #expect(groups.allSatisfy { !$0.name.isEmpty }, "\(surface.name) has an unnamed group")
+            #expect(
+                Set(groups.map(\.name)).count == groups.count,
+                "\(surface.name) repeats a group heading"
+            )
+            #expect(
+                groups.flatMap(\.chips) == surface.map.chips,
+                "\(surface.name): grouping dropped or reordered a chip"
+            )
+        }
+    }
+
+    /// `docs/keymap.md`'s ⌘ table. A chrome verb may not mean two different
+    /// things on two screens, or the namespace stops being a namespace.
+    @Test("the ⌘ chrome verbs mean the same thing on every capturing surface")
+    func commandVerbsAreConsistent() {
+        // ⌘R resets the page wherever a page can be reset.
+        #expect(SurfaceKeys.gamePlaying.commandAction(for: "r") == .verb("replay"))
+        #expect(SurfaceKeys.dojoDrilling.commandAction(for: "r") == .verb("reset"))
+        // ⌘J skips, ⌘E ends.
+        #expect(SurfaceKeys.dojoDrilling.commandAction(for: "j") == .verb("skip"))
+        #expect(SurfaceKeys.arcadeRunning.commandAction(for: "j") == .verb("skip"))
+        #expect(SurfaceKeys.dojoDrilling.commandAction(for: "e") == .verb("finish"))
+        #expect(SurfaceKeys.arcadeRunning.commandAction(for: "e") == .verb("end"))
+        // ⌘K shows the keys — and is claimed by NOTHING else.
+        #expect(SurfaceKeys.lessonPractice.commandAction(for: "k") == .verb("showKeys"))
+        for surface in engineSurfaces where surface.name != "lessonPractice" {
+            #expect(
+                surface.map.commandAction(for: "k") == nil,
+                "\(surface.name) squats on ⌘K, which means \"show me the keys\""
+            )
+        }
+        // The playground's document walk lives on the bracket pair instead.
+        #expect(SurfaceKeys.playground.commandAction(for: "]") == .verb("nextDoc"))
+        #expect(SurfaceKeys.playground.commandAction(for: "[") == .verb("prevDoc"))
+        #expect(SurfaceKeys.playground.commandAction(for: "j") == nil)
     }
 }
 

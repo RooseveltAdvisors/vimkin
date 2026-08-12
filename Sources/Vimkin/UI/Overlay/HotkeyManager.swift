@@ -6,7 +6,9 @@ import Carbon.HIToolbox
 // the Shortcut type hoisted to a top-level `HotkeyShortcut` (keeps it
 // nonisolated + Sendable under Swift 6 while the manager is @MainActor),
 // injectable-UserDefaults persistence helpers for testability, and a
-// Cmd+Shift+V default applied when nothing is stored.
+// Cmd+Shift+Space default applied when nothing is stored (U20 — the launcher
+// is Vimkin's front door, so its key is the one a Spotlight/Raycast user's
+// hand already goes to). The old Cmd+Shift+V default is migrated forward.
 
 /// A recorded global shortcut: a Carbon virtual key code + Carbon modifier mask.
 /// Persisted to UserDefaults as JSON.
@@ -19,11 +21,39 @@ public struct HotkeyShortcut: Codable, Equatable, Sendable {
         self.modifiers = modifiers
     }
 
-    /// The default summon shortcut when none is stored: Cmd+Shift+V.
+    /// The default summon shortcut when none is stored: Cmd+Shift+Space.
+    ///
+    /// The launcher is the app's front door (see `docs/keymap.md` — "the
+    /// launcher is the prefix", the way `C-a` is tmux's), so it gets the key a
+    /// hand already reaches for.
     public static let defaultSummon = HotkeyShortcut(
+        keyCode: UInt32(kVK_Space),
+        modifiers: UInt32(cmdKey | shiftKey)
+    )
+
+    /// The default this app shipped with BEFORE U20: Cmd+Shift+V.
+    ///
+    /// Anyone who ran an earlier build has it persisted, so a plain
+    /// "default when nothing is stored" would leave them on the old key
+    /// forever. `resolveSummon` migrates it; a shortcut the player CHOSE is
+    /// never touched.
+    public static let legacyDefaultSummon = HotkeyShortcut(
         keyCode: UInt32(kVK_ANSI_V),
         modifiers: UInt32(cmdKey | shiftKey)
     )
+
+    /// The shortcut to register at launch, migrating a stale stored default.
+    ///
+    /// - nothing stored → the current default,
+    /// - the OLD default stored → the current default, rewritten to storage so
+    ///   the migration happens once and the recorder shows the truth,
+    /// - anything else → left exactly as the player set it.
+    public static func resolveSummon(from defaults: UserDefaults, key: String) -> HotkeyShortcut {
+        guard let stored = load(from: defaults, key: key) else { return .defaultSummon }
+        guard stored == .legacyDefaultSummon else { return stored }
+        save(.defaultSummon, to: defaults, key: key)
+        return .defaultSummon
+    }
 
     public var displayString: String {
         var parts: [String] = []
@@ -229,7 +259,7 @@ final class HotkeyManager {
 
     private init() {
         installEventHandlerIfNeeded()
-        shortcut = HotkeyShortcut.load(from: .standard, key: Self.storageKey) ?? .defaultSummon
+        shortcut = HotkeyShortcut.resolveSummon(from: .standard, key: Self.storageKey)
         reRegisterHotKey()
     }
 

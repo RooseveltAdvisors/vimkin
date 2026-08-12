@@ -70,20 +70,57 @@ public enum KeyRouting: Equatable, Sendable {
 /// One row of the hint bar / help overlay. Display only — several bindings
 /// (`j` and `k`) collapse into a single chip.
 public struct KeyChip: Equatable, Sendable, Identifiable {
+    /// The default group, for a chip that names no domain of its own.
+    public static let defaultGroup = "Keys"
+
     /// Rendered key-caps, space separated: `"j k"`, `"gg"`, `"⏎"`, `"⌘K"`.
     public let keys: String
     /// What it does, lowercase and short: `"move"`, `"open"`, `"back"`.
     public let label: String
     /// Compact bars only have room for the essentials; the rest is `?`-only.
     public let inBar: Bool
+    /// Which which-key band this belongs to — `"Move"`, `"Go"`, `"Leave"`.
+    ///
+    /// neovim's which-key popup groups by domain rather than listing every
+    /// binding in one column, and `?` copies it: the map is scannable because
+    /// the eye lands on a band first and a key second.
+    public let group: String
+    /// A shorter wording for the one-line hint bar, when the map's own
+    /// description will not fit. A key-cap label that has been truncated to
+    /// `"practise the ma…"` is worse than no label at all.
+    public let barLabel: String?
 
-    public init(_ keys: String, _ label: String, inBar: Bool = true) {
+    public init(
+        _ keys: String,
+        _ label: String,
+        inBar: Bool = true,
+        group: String = KeyChip.defaultGroup,
+        barLabel: String? = nil
+    ) {
         self.keys = keys
         self.label = label
         self.inBar = inBar
+        self.group = group
+        self.barLabel = barLabel
     }
 
+    /// What the hint bar prints — the short wording when there is one.
+    public var barText: String { barLabel ?? label }
+
     public var id: String { keys + "\u{1F}" + label }
+}
+
+/// A which-key band: a heading and the chips under it.
+public struct KeyChipGroup: Equatable, Sendable, Identifiable {
+    public let name: String
+    public let chips: [KeyChip]
+
+    public var id: String { name }
+
+    public init(name: String, chips: [KeyChip]) {
+        self.name = name
+        self.chips = chips
+    }
 }
 
 /// Every key a surface answers to, plus the chips that advertise them.
@@ -128,6 +165,19 @@ public struct KeyMap: Equatable, Sendable {
     }
 
     public var barChips: [KeyChip] { chips.filter(\.inBar) }
+
+    /// Every chip, banded by `group`, in first-appearance order — what `?`
+    /// draws. Order comes from the chip list itself, so a surface controls its
+    /// own reading order without a second table to keep in step.
+    public var groupedChips: [KeyChipGroup] {
+        var order: [String] = []
+        var buckets: [String: [KeyChip]] = [:]
+        for chip in chips {
+            if buckets[chip.group] == nil { order.append(chip.group) }
+            buckets[chip.group, default: []].append(chip)
+        }
+        return order.map { KeyChipGroup(name: $0, chips: buckets[$0] ?? []) }
+    }
 }
 
 // MARK: - The router

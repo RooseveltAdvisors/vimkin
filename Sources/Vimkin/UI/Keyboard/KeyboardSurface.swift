@@ -316,7 +316,7 @@ struct KeyHintBar: View {
                             ) { _, cap in
                                 Keycap(label: String(cap)).fixedSize()
                             }
-                            Text(chip.label)
+                            Text(chip.barText)
                                 .font(.system(size: 11, design: .monospaced))
                                 .foregroundStyle(KeyboardTheme.paper.opacity(0.55))
                                 .lineLimit(1)
@@ -339,6 +339,43 @@ struct KeyHintBar: View {
             Rectangle()
                 .fill(KeyboardTheme.paper.opacity(0.10))
                 .frame(height: 1)
+        }
+    }
+}
+
+// MARK: - Which-key section
+
+/// One band of the `?` map: a heading, then its keys. Shared by the in-app
+/// help overlay and the launcher's own map, so the two can never drift into
+/// different-looking answers to the same question.
+struct KeyGroupSection: View {
+    let group: KeyChipGroup
+    var keyColumnWidth: CGFloat = 148
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(group.name.uppercased())
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .foregroundStyle(KeyboardTheme.selection.opacity(0.75))
+                .tracking(1.2)
+            ForEach(group.chips) { chip in
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    HStack(spacing: 5) {
+                        ForEach(
+                            Array(chip.keys.split(separator: " ").enumerated()),
+                            id: \.offset
+                        ) { _, cap in
+                            Keycap(label: String(cap)).fixedSize()
+                        }
+                    }
+                    .frame(width: keyColumnWidth, alignment: .leading)
+                    Text(chip.label)
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundStyle(KeyboardTheme.paper.opacity(0.85))
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
         }
     }
 }
@@ -368,24 +405,10 @@ struct KeyHelpOverlay: View {
                     }
                 }
 
-                VStack(alignment: .leading, spacing: 9) {
-                    ForEach(map.chips) { chip in
-                        HStack(alignment: .firstTextBaseline, spacing: 10) {
-                            HStack(spacing: 5) {
-                                ForEach(
-                                    Array(chip.keys.split(separator: " ").enumerated()),
-                                    id: \.offset
-                                ) { _, cap in
-                                    Keycap(label: String(cap)).fixedSize()
-                                }
-                            }
-                            .frame(width: 148, alignment: .leading)
-                            Text(chip.label)
-                                .font(.system(size: 13, design: .monospaced))
-                                .foregroundStyle(KeyboardTheme.paper.opacity(0.85))
-                                .lineLimit(1)
-                                .fixedSize()
-                        }
+                // Grouped, which-key style — never a flat dump of every key.
+                VStack(alignment: .leading, spacing: 14) {
+                    ForEach(map.groupedChips) { group in
+                        KeyGroupSection(group: group)
                     }
                 }
 
