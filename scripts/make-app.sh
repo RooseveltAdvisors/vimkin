@@ -19,6 +19,13 @@ if [ -d "$BUILD_DIR/Vimkin_Vimkin.bundle" ]; then
   cp -R "$BUILD_DIR/Vimkin_Vimkin.bundle" "$APP/Contents/Resources/"
 fi
 
+if [ -f "$REPO_ROOT/assets/AppIcon.icns" ]; then
+  cp "$REPO_ROOT/assets/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+  ICON_KEY='    <key>CFBundleIconFile</key><string>AppIcon</string>'
+else
+  ICON_KEY=''
+fi
+
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -29,6 +36,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleName</key><string>Vimkin</string>
     <key>CFBundleDisplayName</key><string>Vimkin</string>
     <key>CFBundlePackageType</key><string>APPL</string>
+${ICON_KEY}
     <key>CFBundleShortVersionString</key><string>${VERSION}</string>
     <key>CFBundleVersion</key><string>${VERSION}</string>
     <key>LSMinimumSystemVersion</key><string>15.0</string>
