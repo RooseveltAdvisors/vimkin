@@ -59,15 +59,15 @@ struct LauncherRoutingTests {
 
     // MARK: Precedence — the load-bearing rule
 
-    @Test("on an EMPTY query, every mnemonic opens its surface")
-    func emptyQueryJumps() {
+    @Test("on an EMPTY query, a bare letter types — it does not jump")
+    func emptyQueryTypes() {
         for destination in LauncherKeys.destinations {
             #expect(
-                LauncherKeys.route(character: destination.key, query: "")
-                    == .open(verb: destination.verb),
-                "`\(destination.key)` did not open \(destination.verb)"
+                LauncherKeys.route(character: destination.key, query: "") == .type,
+                "`\(destination.key)` jumped instead of typing"
             )
         }
+        // `?` is the one bare key that acts, because no search begins with it.
         #expect(LauncherKeys.route(character: "?", query: "") == .help)
     }
 
@@ -83,66 +83,63 @@ struct LauncherRoutingTests {
         #expect(LauncherKeys.route(character: "?", query: "why") == .type)
     }
 
-    /// Only the FIRST character can ever be a jump, and only when the field was
-    /// empty when it arrived.
-    @Test("a bare \"delete\" jumps on its d, then types the rest")
-    func typingAWordOfMnemonics() {
+    /// The bug this design replaced: bare letters used to jump on an empty
+    /// field, so the launcher's own canonical query fired Daily Run on its `d`
+    /// and quit the app on the trailing `q`. Typing must never address the
+    /// program.
+    @Test("typing \"delete inside quotes\" types every character, jumping nowhere")
+    func typingNeverJumps() {
         var query = ""
-        var routings: [LauncherRouting] = []
-        for character in "delete" {
-            let routing = LauncherKeys.route(character: character, query: query)
-            routings.append(routing)
-            if routing == .type { query.append(character) }
-        }
-        // `d` on an empty field is Daily Run — that is the design, and it is
-        // exactly why `/` exists (below).
-        #expect(routings.first == .open(verb: Hub.Verb.daily))
-        // …and nothing after it jumps.
-        #expect(routings.dropFirst().allSatisfy { $0 == .type })
-    }
-
-    // MARK: `/` — the reason a search can still begin with a jump key
-
-    @Test("/ on an empty field arms the search instead of typing a slash")
-    func slashArmsTheSearch() {
-        #expect(LauncherKeys.route(character: "/", query: "") == .startSearch)
-        // Once armed, or once there is a query, `/` is just a character.
-        #expect(LauncherKeys.route(character: "/", query: "", searchArmed: true) == .type)
-        #expect(LauncherKeys.route(character: "/", query: "d") == .type)
-    }
-
-    /// The canonical query from the spec starts with `d`, which is Daily Run.
-    /// `/` is what keeps it typeable — without it, no search could begin with
-    /// any of the six mnemonics (delete, append, yank, paste, line, goto).
-    @Test("\"/delete inside quotes\" types every character, jumping nowhere")
-    func armedSearchTypesEverything() {
-        var query = ""
-        var armed = false
         var jumped = false
 
-        for character in "/delete inside quotes" {
-            switch LauncherKeys.route(character: character, query: query, searchArmed: armed) {
-            case .startSearch: armed = true
+        for character in "delete inside quotes" {
+            switch LauncherKeys.route(character: character, query: query) {
             case .type: query.append(character)
-            case .open, .help, .dismiss: jumped = true
+            case .startCommand, .open, .help, .dismiss: jumped = true
             }
         }
 
-        #expect(armed)
-        #expect(!jumped, "an armed search still fired a jump")
+        #expect(!jumped, "typing a search addressed the program")
         #expect(query == "delete inside quotes")
     }
 
-    @Test("while armed, EVERY mnemonic types — including ? and q")
-    func armedSearchSuppressesEveryMnemonic() {
+    /// Every mnemonic is the first letter of a word the launcher exists to look
+    /// up — delete, append, yank, paste, line, goto. Each must be typeable.
+    @Test("every mnemonic letter can begin a search")
+    func mnemonicsCanBeginASearch() {
         for destination in LauncherKeys.destinations {
             #expect(
-                LauncherKeys.route(character: destination.key, query: "", searchArmed: true)
-                    == .type,
-                "`\(destination.key)` still jumped while the search was armed"
+                LauncherKeys.route(character: destination.key, query: "") == .type,
+                "`\(destination.key)` was eaten instead of typed"
             )
         }
-        #expect(LauncherKeys.route(character: "?", query: "", searchArmed: true) == .type)
+    }
+
+    // MARK: `:` — Vim's own way to address the program
+
+    @Test(": on an empty field opens command mode")
+    func colonOpensCommandMode() {
+        #expect(LauncherKeys.route(character: ":", query: "") == .startCommand)
+        // Mid-query a colon is a literal colon, so `key: value` still types.
+        #expect(LauncherKeys.route(character: ":", query: "key") == .type)
+    }
+
+    @Test("in command mode, one letter opens its surface")
+    func commandModeOpensSurfaces() {
+        for destination in LauncherKeys.destinations {
+            #expect(
+                LauncherKeys.route(character: destination.key, query: "", commandArmed: true)
+                    == .open(verb: destination.verb),
+                "`:\(destination.key)` did not open \(destination.verb)"
+            )
+        }
+        #expect(LauncherKeys.route(character: "?", query: "", commandArmed: true) == .help)
+    }
+
+    /// A wrong guess after `:` must not feel like a dead key.
+    @Test("an unclaimed command key falls back to typing")
+    func unknownCommandKeyTypes() {
+        #expect(LauncherKeys.route(character: "z", query: "", commandArmed: true) == .type)
     }
 
     @Test("a key that is not a mnemonic always types, query or no query")
@@ -166,7 +163,7 @@ struct LauncherRoutingTests {
         let advertised = Set(go?.chips.map(\.keys) ?? [])
         for destination in LauncherKeys.destinations {
             #expect(
-                advertised.contains(String(destination.key)),
+                advertised.contains(":" + String(destination.key)),
                 "the map never mentions `\(destination.key)`"
             )
         }
@@ -174,7 +171,7 @@ struct LauncherRoutingTests {
         let all = map.chips.map(\.keys)
         #expect(all.contains("?"))
         #expect(all.contains("Esc"))
-        #expect(all.contains(String(LauncherKeys.searchKey)))
+        #expect(all.contains(String(LauncherKeys.commandKey)))
     }
 }
 

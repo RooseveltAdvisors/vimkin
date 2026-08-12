@@ -8,12 +8,20 @@
 // The load-bearing rule lives here rather than in the view, because it is the
 // one that decides whether the app is usable at all:
 //
-//     LETTERS JUMP ONLY WHILE THE QUERY IS EMPTY.
+//     TYPING ALWAYS SEARCHES. `:` OPENS COMMAND MODE.
 //
-// The moment there is a search query, every letter belongs to the search
-// field — otherwise typing "adventure" would fire six different destinations
-// before the third character. Keeping the rule pure means it is provable
-// without simulating focus, and the view cannot quietly disagree with it.
+// An earlier design made bare letters jump while the query was empty, with `/`
+// to stand them down. Playing it killed that idea: the query is ALWAYS empty
+// when you begin typing, so "delete inside quotes" fired Daily Run on the `d`
+// and quit the app on the `q`. Six of the mnemonics are the first letters of
+// delete, append, yank, paste, line and goto — a slab of the Vim vocabulary
+// the launcher exists to look up.
+//
+// So the launcher takes Vim's own answer: text is a search, and `:` is how you
+// address the program. Lookup — the thing done fifty times a day — costs zero
+// extra keys, and jumping to a surface costs one. Keeping the rule pure means
+// it is provable without simulating focus, and the view cannot quietly
+// disagree with it.
 
 import Foundation
 
@@ -44,9 +52,9 @@ public enum LauncherRouting: Equatable, Sendable {
     case open(verb: String)
     /// Show the launcher's own which-key map.
     case help
-    /// Arm the search field so the NEXT letters type even though the query is
-    /// still empty — Vim's `/`.
-    case startSearch
+    /// Enter command mode — the NEXT key is read as a destination, not typed.
+    /// Vim's `:`.
+    case startCommand
     /// Dismiss the launcher.
     case dismiss
     /// The launcher does not want this key — it belongs to the search field.
@@ -55,18 +63,13 @@ public enum LauncherRouting: Equatable, Sendable {
 
 public enum LauncherKeys {
 
-    /// `?` — show the map. The one non-destination key that acts on an empty
-    /// query, and the reason nobody has to memorise the rest.
+    /// `?` — show the map, on an empty field or in command mode. The reason
+    /// nobody has to memorise the rest.
     public static let helpKey: Character = "?"
 
-    /// `/` — start a search, exactly as it does in Vim.
-    ///
-    /// Six of the twenty-six letters are mnemonics, and they include the
-    /// first letter of `delete`, `append`, `yank`, `paste`, `line` and
-    /// `goto` — so without this, a whole slab of the Vim vocabulary could
-    /// never begin a query. `/` arms the field: the mnemonics stand down and
-    /// everything types, which is what a Vim user's hand does anyway.
-    public static let searchKey: Character = "/"
+    /// `:` — address the program, exactly as it does in Vim. The next key is a
+    /// destination rather than text.
+    public static let commandKey: Character = ":"
 
     /// Every destination, in hub order.
     ///
@@ -99,12 +102,20 @@ public enum LauncherKeys {
     public static func route(
         character: Character,
         query: String,
-        searchArmed: Bool = false
+        commandArmed: Bool = false
     ) -> LauncherRouting {
-        guard query.isEmpty, !searchArmed else { return .type }
-        if character == searchKey { return .startSearch }
-        if character == helpKey { return .help }
-        if let destination = destination(for: character) { return .open(verb: destination.verb) }
+        // Command mode: this key addresses the program, whatever is typed.
+        if commandArmed {
+            if character == helpKey { return .help }
+            if let destination = destination(for: character) { return .open(verb: destination.verb) }
+            // An unknown command key falls back to typing rather than eating
+            // the press — a wrong guess should never feel like a dead key.
+            return .type
+        }
+        // `:` only opens command mode from an empty field; mid-query it is a
+        // literal colon, so a YAML-ish search like `key: value` still types.
+        if query.isEmpty, character == commandKey { return .startCommand }
+        if query.isEmpty, character == helpKey { return .help }
         return .type
     }
 }

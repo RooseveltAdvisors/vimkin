@@ -142,7 +142,7 @@ public enum SurfaceKeys {
     /// The launcher's own map, shown by `?` inside the panel.
     ///
     /// `bindings` stays empty on purpose: the launcher has a search field, so
-    /// its precedence rule ("letters jump only while the query is empty") is
+    /// its precedence rule ("typing searches; `:` addresses the program") is
     /// not a `KeyMap` lookup — it lives in `LauncherKeys.route`, which is also
     /// where these chips come from. One table, two readers.
     public static let launcher = KeyMap(
@@ -156,16 +156,19 @@ public enum SurfaceKeys {
                 "type", "search in plain English",
                 inBar: false, group: Group.search
             ),
-            // Vim's own search key, and the reason a query can BEGIN with a
-            // mnemonic ("delete inside quotes" starts with `d`, which is
-            // Daily Run on an empty box).
-            KeyChip("/", "search for anything", group: Group.search, barLabel: "search"),
+
             KeyChip("⏎", "practise the match", group: Group.search, barLabel: "practise"),
             KeyChip("⌃N ⌃P", "move through matches", group: Group.search, barLabel: "move"),
             KeyChip("↑ ↓", "move through matches", inBar: false, group: Group.search),
         ]
+            + [
+                // Vim's own way to address the program. Typing is a search, so
+                // a destination costs one extra key rather than costing every
+                // search that begins with a mnemonic letter.
+                KeyChip(":", "go to a surface", group: Group.go, barLabel: "go"),
+            ]
             + LauncherKeys.destinations.map {
-                KeyChip(String($0.key), $0.title, inBar: false, group: Group.go)
+                KeyChip(":\(String($0.key))", $0.title, inBar: false, group: Group.go)
             }
             + [
                 KeyChip("?", "this map", group: Group.keys),

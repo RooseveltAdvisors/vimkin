@@ -35,16 +35,21 @@ the available continuations** instead of asking you to remember them.
 |---|---|
 | *type* | search every Vim command in plain English ("delete inside quotes" → `di"`) |
 | `⏎` | practise the selected command |
-| `a` | Adventure |
-| `d` | Daily Run |
-| `l` | Lessons |
-| `p` | Practice |
-| `g` | Progress |
-| `y` | Playground |
+| `⌃N` / `⌃P` | move through matches |
+| `:` | **command mode** — the next key goes somewhere |
+| `:a` `:d` `:l` `:p` `:g` `:y` | Adventure · Daily Run · Lessons · Practice · Progress · Playground |
 | `?` | show this map |
 | `Esc` | dismiss |
 
-Letters act only on an empty query, so typing a search is never intercepted.
+**Why `:` and not bare letters.** An earlier draft of this doc said letters jump
+while the query is empty. Playing it killed that: the query is *always* empty
+when you start typing, so "delete inside quotes" fired Daily Run on the `d` and
+quit the app on the `q`. Six mnemonics are the first letters of *delete, append,
+yank, paste, line, goto* — the vocabulary the launcher exists to look up.
+
+So the launcher takes Vim's own answer: text is a search, `:` addresses the
+program. Lookup — done fifty times a day — costs zero extra keys; going
+somewhere costs one.
 
 ### Navigation (menus, lists, the world map)
 

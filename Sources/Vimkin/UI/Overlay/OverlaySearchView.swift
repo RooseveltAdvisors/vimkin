@@ -68,7 +68,7 @@ struct LauncherMapCard: View {
                 }
             }
 
-            Text("Letters open a surface only while the search box is empty.")
+            Text("Type to search. Press : then a letter to open a surface.")
                 .font(.system(size: 10, design: .monospaced))
                 .foregroundStyle(OverlayStyle.accent.opacity(0.7))
         }
@@ -112,10 +112,10 @@ struct OverlaySearchView: View {
     @State private var results: [VimCommand]
     @State private var selectedID: String?
     @State private var showMap: Bool
-    /// `/` was pressed on an empty field: the mnemonics stand down so a query
-    /// can BEGIN with one of them ("delete inside quotes"). Disarms itself the
-    /// moment the field is empty again.
-    @State private var searchArmed = false
+    /// `:` was pressed on an empty field: the NEXT key addresses the program
+    /// instead of typing. One key wide, exactly like Vim's command line — it
+    /// disarms as soon as that key lands.
+    @State private var commandArmed = false
     @FocusState private var searchFocused: Bool
 
     /// - Parameters:
@@ -169,15 +169,15 @@ struct OverlaySearchView: View {
             // working (observed on the real app, agt-2, 2026-08-12).
             guard note.object is OverlayPanel else { return }
             query = ""
-            searchArmed = false
+            commandArmed = false
             showMap = false
             searchFocused = true
         }
         .onChange(of: query) { _, newValue in
             results = database.search(newValue, limit: 12)
             selectedID = results.first?.id
-            // Back to an empty field means back to the front door.
-            if newValue.isEmpty { searchArmed = false }
+            // Any typing ends command mode; the field owns the keys again.
+            if !newValue.isEmpty { commandArmed = false }
         }
     }
 
@@ -251,22 +251,25 @@ struct OverlaySearchView: View {
             let character = press.characters.first
         else { return .ignored }
 
-        switch LauncherKeys.route(character: character, query: query, searchArmed: searchArmed) {
+        switch LauncherKeys.route(character: character, query: query, commandArmed: commandArmed) {
         case .open(let verb):
+            commandArmed = false
             onOpenSurface(verb)
             return .handled
         case .help:
+            commandArmed = false
             showMap = true
             return .handled
-        case .startSearch:
-            searchArmed = true
+        case .startCommand:
+            commandArmed = true
             return .handled
         case .dismiss:
             onDismiss()
             return .handled
         case .type:
-            // A query is running (or the key is not a mnemonic): the field
-            // gets it, untouched.
+            // Ordinary text — or a command key nobody claimed. Either way the
+            // field gets it, untouched.
+            commandArmed = false
             return .ignored
         }
     }
@@ -351,16 +354,16 @@ struct OverlaySearchView: View {
     /// rather than disappearing, because a key map you have to remember is the
     /// thing this app exists not to be.
     private var destinationStrip: some View {
-        let live = query.isEmpty && !searchArmed
+        let live = commandArmed
 
         return VStack(alignment: .leading, spacing: 7) {
             HStack(spacing: 8) {
-                Text("GO")
+                Text(commandArmed ? "GO \u{2014} press a letter" : "GO")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundStyle(OverlayStyle.accent.opacity(live ? 0.8 : 0.3))
                     .tracking(1.2)
                 if !live {
-                    Text("\u{2014} letters type while you search")
+                    Text("\u{2014} press : first")
                         .font(.system(size: 10, design: .monospaced))
                         .foregroundStyle(OverlayStyle.paper.opacity(0.3))
                 }
@@ -451,17 +454,17 @@ struct OverlaySearchView: View {
 
     private var emptyTitle: String {
         if !query.isEmpty { return "no matches" }
-        return searchArmed ? "searching\u{2026}" : "vimkin launcher"
+        return commandArmed ? "go where?" : "vimkin launcher"
     }
 
     private var emptyHint: String {
         if !query.isEmpty {
             return "Try different words \u{2014} \u{201C}delete\u{201D}, \u{201C}jump\u{201D}, \u{201C}quotes\u{201D}, \u{201C}line\u{201D}\u{2026}"
         }
-        if searchArmed {
-            return "Type your search \u{2014} every letter goes in the box now.\nEsc to go back."
+        if commandArmed {
+            return "Press a letter below to open it.\nEsc to go back to searching."
         }
-        return "Type what you want to do in plain English \u{2014}\n\u{201C}go to end of line\u{201D}, \u{201C}change inside brackets\u{201D}\u{2026}\nPress \u{201C}/\u{201D} first to search for a word that starts\nwith one of the keys below."
+        return "Type what you want to do in plain English \u{2014}\n\u{201C}go to end of line\u{201D}, \u{201C}change inside brackets\u{201D}\u{2026}\nOr press \u{201C}:\u{201D} to go somewhere in the app."
     }
 
     // MARK: Selection movement
