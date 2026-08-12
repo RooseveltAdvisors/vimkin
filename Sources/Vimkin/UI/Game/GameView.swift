@@ -61,10 +61,11 @@ public struct GameView: View {
                     .ignoresSafeArea(edges: .bottom)
             }
 
-            VStack(spacing: 0) {
+            VStack(spacing: 12) {
                 hud
                 Spacer()
                 if let toast { toastBar(toast) }
+                itemBar
             }
             .padding(18)
             .allowsHitTesting(false)
@@ -137,6 +138,70 @@ public struct GameView: View {
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(GameTheme.parchment.opacity(0.45))
         }
+    }
+
+    /// What this level hands the player, as key-caps along the bottom of the
+    /// world — the "what can I do here" affordance. It is the level's WHOLE
+    /// toolkit: `LockFilter` blocks every key that is not on this bar.
+    private var toolkit: [(keys: String, title: String)] {
+        guard let database else { return [] }
+        return level.allowedCommandIDs.compactMap { id in
+            database.command(id: id).map { ($0.keys, $0.title) }
+        }
+    }
+
+    private var itemBar: some View {
+        HStack(spacing: 10) {
+            Text("toolkit")
+                .font(.system(.caption2, design: .monospaced))
+                .foregroundStyle(GameTheme.parchment.opacity(0.4))
+                .fixedSize()
+            // Clipped, not expanding: a late level hands out ~18 commands, and
+            // without this the bar's intrinsic width drags the whole window
+            // layout wider than the window and clips the HUD at both ends.
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(Array(toolkit.enumerated()), id: \.offset) { _, item in
+                        // A big toolkit becomes caps-only: ten wrapped captions
+                        // is a wall of text, and the cap alone is the affordance.
+                        keyCap(item.keys, toolkit.count <= 6 ? item.title : nil)
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 9)
+        .background(GameTheme.inkNavy.opacity(0.78), in: RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(GameTheme.cursorCyan.opacity(0.16), lineWidth: 1)
+        )
+        .opacity(toolkit.isEmpty ? 0 : 1)
+    }
+
+    private func keyCap(_ keys: String, _ title: String?) -> some View {
+        HStack(spacing: 7) {
+            Text(keys)
+                .font(.system(.body, design: .monospaced).weight(.semibold))
+                .foregroundStyle(GameTheme.inkNavy)
+                .frame(minWidth: 22)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 4)
+                .background(GameTheme.parchment, in: RoundedRectangle(cornerRadius: 6))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(GameTheme.vimkinAmber.opacity(0.55), lineWidth: 1)
+                )
+            if let title {
+                Text(title)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(GameTheme.parchment.opacity(0.55))
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+        }
+        .padding(.trailing, 4)
     }
 
     private func toastBar(_ message: String) -> some View {
