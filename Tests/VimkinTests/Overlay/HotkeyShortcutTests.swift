@@ -57,10 +57,19 @@ struct HotkeyShortcutTests {
 
     // MARK: Default
 
-    @Test("default summon shortcut is Cmd+Shift+V")
+    /// U20: the launcher is the front door, so it answers to the key a hand
+    /// already reaches for.
+    @Test("default summon shortcut is Cmd+Shift+Space")
     func defaultShortcut() {
-        #expect(HotkeyShortcut.defaultSummon.keyCode == UInt32(kVK_ANSI_V))
+        #expect(HotkeyShortcut.defaultSummon.keyCode == UInt32(kVK_Space))
         #expect(HotkeyShortcut.defaultSummon.modifiers == UInt32(cmdKey | shiftKey))
-        #expect(HotkeyShortcut.defaultSummon.displayString == "Shift+Cmd+V")
+        #expect(HotkeyShortcut.defaultSummon.displayString == "Shift+Cmd+Space")
+    }
+
+    @Test("the pre-U20 default is remembered, and is NOT the current one")
+    func legacyDefaultIsDistinct() {
+        #expect(HotkeyShortcut.legacyDefaultSummon.keyCode == UInt32(kVK_ANSI_V))
+        #expect(HotkeyShortcut.legacyDefaultSummon.modifiers == UInt32(cmdKey | shiftKey))
+        #expect(HotkeyShortcut.legacyDefaultSummon != HotkeyShortcut.defaultSummon)
     }
 }

@@ -68,6 +68,16 @@ struct ContentView: View {
                 practiceCommandID = note.object as? String
                 showDojo = true
             }
+            // The launcher is the front door (U20): a mnemonic key there opens
+            // the surface HERE, through the same notification precedent the
+            // practice hand-off already uses.
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: OverlayController.openSurfaceNotification)
+            ) { note in
+                guard let verb = note.object as? String else { return }
+                open(verb: verb)
+            }
     }
 
     @ViewBuilder
@@ -200,8 +210,8 @@ struct PlaygroundView: View {
                 }
                 .frame(maxWidth: 320)
                 HStack(spacing: 6) {
-                    Keycap(label: "⌘J")
-                    Keycap(label: "⌘K")
+                    Keycap(label: "⌘[")
+                    Keycap(label: "⌘]")
                     Text("switch document")
                         .font(.system(size: 11, design: .monospaced))
                         .foregroundStyle(HubTheme.paper.opacity(0.4))
